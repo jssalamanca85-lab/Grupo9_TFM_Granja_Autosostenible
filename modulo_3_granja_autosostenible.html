@@ -1,0 +1,1589 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Módulo 3 - Mapa de la granja</title>
+  <style>
+    :root {
+      --sky: #bff4ff;
+      --leaf: #168a4a;
+      --leaf-soft: #e8f6dc;
+      --sun: #ffc928;
+      --sand: #f7d267;
+      --field: #8fd443;
+      --ink: #183235;
+      --muted: #526b65;
+      --panel: #fffdf2;
+      --panel-soft: #fff6df;
+      --line: #e5d39f;
+      --good: #168a4a;
+      --warn: #d77a24;
+      --cold: #0878bf;
+      --water: #0797c8;
+      --energy: #e08a00;
+      --soil: #b66c2f;
+      --shadow: 0 18px 45px rgba(19, 84, 91, .18);
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.48), transparent 34%),
+        linear-gradient(180deg, var(--sky) 0 46%, var(--sand) 46% 60%, var(--field) 60% 100%);
+      letter-spacing: 0;
+    }
+
+    button, input, select { font: inherit; }
+    button { border: 0; cursor: pointer; }
+    h1, h2, h3, p { margin: 0; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      padding: 14px clamp(16px, 4vw, 40px);
+      background: rgba(255, 253, 242, .9);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(139, 111, 35, .22);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: var(--radius);
+      background: var(--leaf-soft);
+      border: 1px solid #bfe3aa;
+      flex: 0 0 auto;
+    }
+
+    .brand-mark svg {
+      width: 28px;
+      height: 28px;
+    }
+
+    .title h1 {
+      font-size: clamp(1.05rem, 2.4vw, 1.34rem);
+      line-height: 1.18;
+    }
+
+    .title p {
+      color: var(--muted);
+      font-size: .92rem;
+      margin-top: 3px;
+    }
+
+    .progress-wrap {
+      display: grid;
+      gap: 7px;
+      min-width: 180px;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: .82rem;
+    }
+
+    .progress {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #eadfbc;
+      border: 1px solid #d8c693;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #59a95a, #ffc928);
+      transition: width .3s ease;
+    }
+
+    main {
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: clamp(18px, 4vw, 42px);
+    }
+
+    .stage {
+      display: grid;
+      grid-template-columns: minmax(280px, .95fr) minmax(320px, 1.05fr);
+      gap: clamp(18px, 3.2vw, 34px);
+      align-items: stretch;
+    }
+
+    .stage.wide-mode {
+      grid-template-columns: 1fr;
+    }
+
+    .stage.wide-mode .scene {
+      display: none;
+    }
+
+    .stage.wide-mode .activity-panel {
+      min-height: 680px;
+    }
+
+    .stage.wide-mode .panel-head p {
+      max-width: 86ch;
+    }
+
+    .scene {
+      position: relative;
+      min-height: 620px;
+      overflow: hidden;
+      border: 1px solid rgba(22, 138, 74, .34);
+      border-radius: var(--radius);
+      background: #82d5df;
+      box-shadow: var(--shadow);
+    }
+
+    .scene::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: url("assets/granja3.png") center / cover no-repeat;
+      filter: blur(12px) saturate(1.08);
+      transform: scale(1.06);
+      opacity: .72;
+    }
+
+    .farm-image {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+      display: block;
+      z-index: 1;
+    }
+
+    .map-overlay {
+      position: absolute;
+      left: 20px;
+      right: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 2;
+      padding: 14px;
+      border-radius: var(--radius);
+      background: rgba(255, 253, 242, .92);
+      border: 1px solid rgba(229, 211, 159, .74);
+      box-shadow: 0 10px 24px rgba(24, 60, 52, .12);
+    }
+
+    .map-overlay h3 {
+      font-size: 1rem;
+      margin-bottom: 8px;
+    }
+
+    .mini-axis {
+      position: relative;
+      height: 82px;
+      margin-top: 12px;
+      overflow: visible;
+    }
+
+    .mini-axis-line {
+      position: absolute;
+      left: 14px;
+      right: 18px;
+      top: 36px;
+      height: 4px;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #0878bf, #168a4a, #e08a00);
+    }
+
+    .mini-zero {
+      position: absolute;
+      left: 50%;
+      top: 18px;
+      width: 2px;
+      height: 40px;
+      background: var(--ink);
+      transform: translateX(-50%);
+    }
+
+    .mini-label {
+      position: absolute;
+      top: 47px;
+      transform: translateX(-50%);
+      font-size: .78rem;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .mini-label.left { left: 17%; }
+    .mini-label.center { left: 50%; }
+    .mini-label.right { left: 82%; }
+
+    .activity-panel {
+      background: rgba(255, 253, 242, .96);
+      border: 1px solid rgba(139, 111, 35, .24);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      min-height: 620px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: clamp(18px, 3vw, 28px);
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #fffdf2, #fff2cf);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--leaf);
+      font-size: .86rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .eyebrow:before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--leaf);
+    }
+
+    .panel-head h2 {
+      font-size: clamp(1.45rem, 3vw, 2.15rem);
+      line-height: 1.1;
+      margin-top: 10px;
+      max-width: 14ch;
+    }
+
+    .panel-head p {
+      max-width: 62ch;
+      color: var(--muted);
+      line-height: 1.55;
+      margin-top: 12px;
+      font-size: 1rem;
+    }
+
+    .steps {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .step-pill {
+      min-height: 34px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: #f0e5c6;
+      color: #665437;
+      display: inline-flex;
+      align-items: center;
+      font-size: .86rem;
+      font-weight: 800;
+    }
+
+    .step-pill.active {
+      color: #fff;
+      background: var(--leaf);
+    }
+
+    .step-pill.done {
+      background: #dff1d7;
+      color: #25673d;
+    }
+
+    .panel-body {
+      padding: clamp(18px, 3vw, 30px);
+      overflow: auto;
+    }
+
+    .screen { display: none; animation: lift .22s ease; }
+    .screen.active { display: block; }
+
+    @keyframes lift {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .intro-text,
+    .summary,
+    .quiz-grid,
+    .map-stack {
+      display: grid;
+      gap: 14px;
+    }
+
+    .soft-note {
+      padding: 14px 16px;
+      border-radius: var(--radius);
+      background: var(--leaf-soft);
+      border: 1px solid #bfe3aa;
+      color: #285b38;
+      line-height: 1.5;
+    }
+
+    .summary-box,
+    .quiz-card,
+    .map-card {
+      padding: 16px;
+      border-radius: var(--radius);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      line-height: 1.55;
+    }
+
+    .summary-box h3 {
+      font-size: 1.05rem;
+      margin-bottom: 8px;
+    }
+
+    .num {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--leaf);
+      color: white;
+      font-size: .85rem;
+      font-weight: 800;
+      flex: 0 0 auto;
+    }
+
+    .quiz-title {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 12px;
+      align-items: start;
+      line-height: 1.45;
+      margin-bottom: 12px;
+    }
+
+    .answer-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .answer {
+      min-height: 46px;
+      padding: 11px 12px;
+      border-radius: var(--radius);
+      background: #fffefb;
+      border: 1px solid #cfbd86;
+      color: #263e38;
+      text-align: left;
+      font-weight: 800;
+      line-height: 1.18;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+
+    .answer:hover { background: #fff7df; }
+    .answer.selected {
+      border-color: var(--leaf);
+      background: #e8f5df;
+      color: #245d3d;
+    }
+    .answer.correct {
+      border-color: var(--leaf);
+      background: #dff1d7;
+      color: #245d3d;
+    }
+    .answer.incorrect {
+      border-color: #c27a32;
+      background: #ffe9c7;
+      color: #704615;
+    }
+
+    .quiz-card.correct,
+    .map-card.correct {
+      border-color: #85bd72;
+      background: #eff8e9;
+    }
+
+    .quiz-card.incorrect,
+    .map-card.incorrect {
+      border-color: #e1ad72;
+      background: #fff4e2;
+    }
+
+    .map-axis-card {
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: #fff6df;
+      padding: 14px;
+    }
+
+    .axis-scroll {
+      overflow-x: auto;
+      padding: 8px 0 12px;
+      scrollbar-gutter: stable both-edges;
+    }
+
+    .axis {
+      position: relative;
+      width: 100%;
+      min-width: 1040px;
+      height: 300px;
+      margin-top: 10px;
+    }
+
+    .axis-line {
+      position: absolute;
+      left: 34px;
+      right: 34px;
+      top: 142px;
+      height: 5px;
+      border-radius: 99px;
+      background: #35433e;
+    }
+
+    .tick {
+      position: absolute;
+      top: 112px;
+      width: 2px;
+      height: 60px;
+      background: #35433e;
+      transform: translateX(-50%);
+    }
+
+    .tick span {
+      position: absolute;
+      top: 66px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: .78rem;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .drop-slot {
+      position: absolute;
+      top: 62px;
+      width: 42px;
+      min-height: 54px;
+      transform: translateX(-50%);
+      border-radius: 14px;
+      border: 2px dashed #cfbd86;
+      background: rgba(255, 253, 242, .82);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3px;
+      color: #6a593a;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform .18s ease, border-color .18s ease, background .18s ease;
+    }
+
+    .drop-slot.over {
+      border-color: var(--leaf);
+      background: #e8f5df;
+      transform: translateX(-50%) translateY(-3px);
+    }
+
+    .drop-slot.filled {
+      border-style: solid;
+      border-color: var(--leaf);
+      background: #fffdf2;
+    }
+
+    .drop-slot .ghost {
+      color: #b39d62;
+      font-size: 1.1rem;
+    }
+
+    .placed-chip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ink);
+      text-align: center;
+      width: 100%;
+      height: 100%;
+    }
+
+    .placed-chip .icon {
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: #fffdf2;
+      border: 2px solid var(--leaf);
+      box-shadow: 0 8px 14px rgba(0,0,0,.12);
+      font-size: 1.08rem;
+      line-height: 1;
+    }
+
+    .placed-chip strong {
+      display: none;
+    }
+
+    .zone-bank-card {
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: #f6fbef;
+      padding: 14px;
+    }
+
+    .zone-bank-card p {
+      margin-top: 4px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .zone-bank {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .zone-card {
+      min-height: 96px;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 8px;
+      align-items: center;
+      padding: 10px;
+      border-radius: var(--radius);
+      background: #fffefb;
+      border: 1px solid #cfbd86;
+      font-weight: 800;
+      text-align: left;
+      cursor: grab;
+      user-select: none;
+      transition: transform .18s ease, border-color .18s ease, background .18s ease;
+    }
+
+    .zone-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .zone-card.selected {
+      border-color: var(--leaf);
+      background: #e8f5df;
+      color: #245d3d;
+    }
+
+    .zone-card .icon {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--leaf-soft);
+      border: 1px solid #bfe3aa;
+      font-size: 1.25rem;
+    }
+
+    .zone-card small {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: .74rem;
+      line-height: 1.2;
+    }
+
+    .select-card {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      border-radius: var(--radius);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      line-height: 1.5;
+    }
+
+    .select-card.correct {
+      border-color: #85bd72;
+      background: #eff8e9;
+    }
+
+    .select-card.incorrect {
+      border-color: #e1ad72;
+      background: #fff4e2;
+    }
+
+    .select-row {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .select-card select {
+      width: 100%;
+      min-height: 46px;
+      padding: 10px 12px;
+      border-radius: var(--radius);
+      border: 1px solid #cfbd86;
+      background: #fffefb;
+      color: var(--ink);
+      font: inherit;
+      font-weight: 800;
+    }
+
+    .select-card select:focus {
+      outline: 0;
+      border-color: var(--leaf);
+      box-shadow: 0 0 0 4px rgba(22, 138, 74, .14);
+    }
+
+    .reading-card {
+      display: grid;
+      gap: 14px;
+      padding: 16px;
+      border-radius: var(--radius);
+      background: var(--panel);
+      border: 1px solid var(--line);
+    }
+
+    .reading-card.correct {
+      border-color: #85bd72;
+      background: #eff8e9;
+    }
+
+    .reading-card.incorrect {
+      border-color: #e1ad72;
+      background: #fff4e2;
+    }
+
+    .reading-title {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px;
+      align-items: start;
+    }
+
+    .reading-token-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .drag-instruction {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: .86rem;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .reading-token {
+      min-height: 46px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 14px;
+      border-radius: 14px;
+      border: 1px solid #cfbd86;
+      background: #fffdf2;
+      color: var(--ink);
+      font-weight: 900;
+      cursor: grab;
+      box-shadow: 0 8px 14px rgba(84, 67, 27, .08);
+    }
+
+    .reading-token.selected {
+      border-color: var(--leaf);
+      background: #e8f5df;
+      color: #245d3d;
+    }
+
+    .reading-axis-wrap {
+      overflow-x: auto;
+      padding: 8px 0 12px;
+    }
+
+    .reading-axis {
+      position: relative;
+      min-width: 900px;
+      height: 170px;
+    }
+
+    .reading-axis-line {
+      position: absolute;
+      left: 34px;
+      right: 34px;
+      top: 88px;
+      height: 4px;
+      border-radius: 999px;
+      background: #35433e;
+    }
+
+    .reading-tick {
+      position: absolute;
+      top: 68px;
+      width: 2px;
+      height: 42px;
+      transform: translateX(-50%);
+      background: #35433e;
+    }
+
+    .reading-tick span {
+      position: absolute;
+      top: 50px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: .74rem;
+      color: var(--muted);
+      font-weight: 800;
+    }
+
+    .reading-slot {
+      position: absolute;
+      top: 26px;
+      width: 32px;
+      min-height: 38px;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 3px;
+      border-radius: 14px;
+      border: 2px dashed #cfbd86;
+      background: rgba(255, 253, 242, .86);
+      color: #6a593a;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .reading-slot.over,
+    .reading-slot.filled {
+      border-color: var(--leaf);
+      background: #e8f5df;
+    }
+
+    .reading-slot .placed-answer {
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: #fffdf2;
+      border: 2px solid var(--leaf);
+      color: var(--leaf);
+      font-size: .82rem;
+      line-height: 1;
+    }
+
+    .stage.wide-mode .screen[data-screen="3"] .quiz-grid {
+      gap: 16px;
+    }
+
+    .stage.wide-mode .screen[data-screen="3"] .reading-card {
+      grid-template-columns: minmax(230px, .34fr) minmax(720px, 1fr);
+      grid-template-areas:
+        "title axis"
+        "token axis"
+        "feedback axis";
+      align-items: center;
+      column-gap: 18px;
+    }
+
+    .stage.wide-mode .screen[data-screen="3"] .reading-title {
+      grid-area: title;
+    }
+
+    .stage.wide-mode .screen[data-screen="3"] .reading-token-row {
+      grid-area: token;
+    }
+
+    .stage.wide-mode .screen[data-screen="3"] .reading-axis-wrap {
+      grid-area: axis;
+      min-width: 0;
+    }
+
+    .stage.wide-mode .screen[data-screen="3"] .micro-feedback {
+      grid-area: feedback;
+    }
+
+    .micro-feedback {
+      display: none;
+      color: var(--muted);
+      font-size: .88rem;
+      line-height: 1.4;
+    }
+    .micro-feedback.visible { display: block; }
+
+    .feedback {
+      margin-top: 16px;
+      min-height: 46px;
+      display: none;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 13px 14px;
+      border-radius: var(--radius);
+      background: #edf7e8;
+      border: 1px solid #c9dfba;
+      color: #2f5f39;
+      line-height: 1.45;
+    }
+    .feedback.visible { display: flex; }
+    .feedback.warn {
+      background: #fff3dd;
+      border-color: #e6c995;
+      color: #7a4c19;
+    }
+    .feedback svg {
+      flex: 0 0 auto;
+      width: 22px;
+      height: 22px;
+      margin-top: 1px;
+    }
+
+    .panel-foot {
+      padding: 16px clamp(18px, 3vw, 30px);
+      border-top: 1px solid var(--line);
+      background: rgba(255, 242, 207, .92);
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      min-height: 44px;
+      padding: 10px 16px;
+      border-radius: var(--radius);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      font-weight: 800;
+      color: white;
+      background: var(--leaf);
+      border: 1px solid rgba(0,0,0,.08);
+      transition: transform .18s ease, opacity .18s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn[disabled] {
+      opacity: .48;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .btn.secondary {
+      color: #3d4d43;
+      background: #fffaf0;
+      border-color: #cfc2ad;
+    }
+    .btn.ghost {
+      color: var(--leaf);
+      background: transparent;
+      border-color: transparent;
+    }
+    .btn svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    @media (max-width: 950px) {
+      .stage { grid-template-columns: 1fr; }
+      .scene { min-height: 430px; }
+      .activity-panel { min-height: auto; }
+      .stage.wide-mode .screen[data-screen="3"] .reading-card {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "title"
+          "token"
+          "axis"
+          "feedback";
+      }
+    }
+
+    @media (max-width: 680px) {
+      .topbar { grid-template-columns: 1fr; }
+      .progress-wrap { min-width: 0; }
+      main { padding: 14px; }
+      .scene { min-height: 390px; }
+      .map-overlay {
+        left: 14px;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+      .zone-bank { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .axis { min-width: 840px; }
+      .reading-axis { min-width: 760px; }
+      .panel-foot {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+      .btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M3 11.4 12 4l9 7.4" stroke="#168a4a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M6 10.8V20h12v-9.2" stroke="#168a4a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M9 20v-6h6v6" stroke="#168a4a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="title">
+        <h1>Granja autosostenible</h1>
+        <p>Módulo 3: mapa y recta numérica</p>
+      </div>
+    </div>
+    <div class="progress-wrap" aria-label="Progreso del módulo">
+      <div class="progress-label"><span>Avance</span><strong id="progressText">0%</strong></div>
+      <div class="progress"><span id="progressBar"></span></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="stage" aria-label="Módulo 3">
+      <aside class="scene" aria-label="Mapa visual de la granja autosostenible">
+        <img class="farm-image" src="assets/granja3.png" alt="Granja autosostenible con casa, invernadero, paneles solares y huerta">
+        <div class="map-overlay">
+          <h3>Referencia del mapa</h3>
+          <p>La casa principal será el punto <strong>0</strong>. A la izquierda aparecen números negativos; a la derecha, positivos.</p>
+          <div class="mini-axis" aria-hidden="true">
+            <div class="mini-axis-line"></div>
+            <div class="mini-zero"></div>
+            <span class="mini-label left">izquierda (-)</span>
+            <span class="mini-label center">casa 0</span>
+            <span class="mini-label right">derecha (+)</span>
+          </div>
+        </div>
+      </aside>
+
+      <section class="activity-panel">
+        <div class="panel-head">
+          <span class="eyebrow">Misión del mapa</span>
+          <h2>La granja como recta numérica</h2>
+          <p>La casa principal será el punto de referencia. Vas a ubicar zonas de la granja, leer posiciones y reconocer distancias respecto al cero.</p>
+          <div class="steps" aria-label="Pasos del módulo">
+            <span class="step-pill active" data-pill="0">Inicio</span>
+            <span class="step-pill" data-pill="1">3.1</span>
+            <span class="step-pill" data-pill="2">3.2</span>
+            <span class="step-pill" data-pill="3">3.3</span>
+            <span class="step-pill" data-pill="4">Cierre</span>
+          </div>
+        </div>
+
+        <div class="panel-body">
+          <article class="screen active" data-screen="0">
+            <div class="intro-text">
+              <p class="soft-note">En esta misión la recta numérica funciona como un mapa. No se trata solo de mirar números: se trata de entender posición, dirección y distancia.</p>
+              <div class="summary-box">
+                <h3>Meta del módulo</h3>
+                <p>Usar la recta numérica para representar lugares de la granja respecto a la casa principal, que será el punto cero.</p>
+              </div>
+              <div class="summary-box">
+                <h3>Acuerdo de mapa</h3>
+                <p><strong>Izquierda del cero:</strong> posiciones negativas. <strong>Derecha del cero:</strong> posiciones positivas. <strong>Distancia al cero:</strong> cuántas unidades separan una zona de la casa principal.</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="screen" data-screen="1">
+            <div class="quiz-grid" id="activationGrid"></div>
+            <div class="feedback" id="feedback1" role="status"></div>
+          </article>
+
+          <article class="screen" data-screen="2">
+            <div class="map-stack">
+              <div class="map-axis-card">
+                <h3>Ubica las zonas de la granja</h3>
+                <p>Arrastra cada tarjeta de zona y suéltala sobre el punto correcto de la recta numérica. También puedes tocar una tarjeta y luego tocar una posición.</p>
+                <div class="axis-scroll" aria-label="Recta numérica horizontal">
+                  <div class="axis" id="axis"></div>
+                </div>
+              </div>
+              <div class="zone-bank-card">
+                <h3>Zonas por ubicar</h3>
+                <p>Coloca cada zona según su distancia respecto a la casa principal, que está en el cero.</p>
+                <div class="zone-bank" id="zoneBank"></div>
+              </div>
+            </div>
+            <div class="feedback" id="feedback2" role="status"></div>
+          </article>
+
+          <article class="screen" data-screen="3">
+            <p class="soft-note">Arrastra la ficha de cada pregunta y suéltala sobre el número correcto de su recta numérica.</p>
+            <div class="quiz-grid" id="readingGrid"></div>
+            <div class="feedback" id="feedback3" role="status"></div>
+          </article>
+
+          <article class="screen" data-screen="4">
+            <div class="summary">
+              <div class="summary-box">
+                <h3>Bitácora del módulo</h3>
+                <p id="finalMessage">Completaste el mapa de la granja.</p>
+              </div>
+              <div class="summary-box">
+                <h3>Acuerdo matemático</h3>
+                <p>El signo indica dirección respecto al cero: negativo a la izquierda, positivo a la derecha. El número indica distancia.</p>
+              </div>
+              <div class="summary-box">
+                <h3>Evidencia para el docente</h3>
+                <p id="teacherEvidence">Aún no hay respuestas guardadas.</p>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="panel-foot">
+          <button class="btn secondary" id="backBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m15 18-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Volver
+          </button>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn ghost" id="resetBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Reiniciar
+            </button>
+            <button class="btn" id="nextBtn" type="button">
+              Continuar
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 18 6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const storageKey = "granja_modulo_3_estado_v1";
+
+    const activationQuestions = [
+      {
+        id: "reference",
+        text: "¿Qué punto de la granja funciona como referencia 0?",
+        options: ["La casa principal.", "La huerta.", "Los paneles solares."],
+        answer: "La casa principal.",
+        feedback: "Exacto: la casa principal será el punto cero."
+      },
+      {
+        id: "left",
+        text: "Si una zona está a la izquierda de la casa principal, ¿qué tipo de número usa?",
+        options: ["Positivo.", "Negativo.", "Cero."],
+        answer: "Negativo.",
+        feedback: "Correcto: a la izquierda del cero usamos números negativos."
+      },
+      {
+        id: "opposites",
+        text: "Dos zonas pueden estar a la misma distancia del cero pero en lados opuestos. ¿Qué ejemplo muestra eso?",
+        options: ["-4 y +4.", "-4 y -6.", "0 y +4."],
+        answer: "-4 y +4.",
+        feedback: "Muy bien: -4 y +4 están a 4 unidades del cero, pero en lados distintos."
+      }
+    ];
+
+    const zones = [
+      { id: "huerta", label: "Huerta", icon: "🥬", value: -6, hint: "6 unidades a la izquierda" },
+      { id: "deposito", label: "Depósito de agua", icon: "💧", value: -3, hint: "3 unidades a la izquierda" },
+      { id: "casa", label: "Casa principal", icon: "🏠", value: 0, hint: "Punto de referencia" },
+      { id: "granero", label: "Granero", icon: "🌾", value: 4, hint: "4 unidades a la derecha" },
+      { id: "paneles", label: "Paneles solares", icon: "☀️", value: 8, hint: "8 unidades a la derecha" },
+      { id: "biorreactor", label: "Biorreactor", icon: "♻️", value: -1, hint: "1 unidad a la izquierda" }
+    ];
+    const placementOptions = zones.map(zone => zone.value);
+
+    const readingQuestions = [
+      {
+        id: "pointA",
+        text: "El punto A está cinco unidades a la izquierda del cero. ¿Qué número representa?",
+        token: "Punto A",
+        answer: -5,
+        feedback: "Correcto: cinco unidades a la izquierda del cero es -5."
+      },
+      {
+        id: "pointB",
+        text: "El punto B está a la misma distancia que -4, pero al lado contrario. ¿Qué número es?",
+        token: "Punto B",
+        answer: 4,
+        feedback: "Exacto: el opuesto de -4 es +4."
+      },
+      {
+        id: "pointC",
+        text: "El punto C está justo entre -2 y +6. ¿Qué número es?",
+        token: "Punto C",
+        answer: 2,
+        feedback: "Muy bien: el punto medio entre -2 y +6 es +2."
+      },
+      {
+        id: "direction",
+        text: "Una zona está tres unidades a la derecha del cero. Ubica su coordenada.",
+        token: "Zona derecha",
+        answer: 3,
+        feedback: "Sí: tres unidades a la derecha del cero se representa con +3."
+      }
+    ];
+
+    let state = {
+      screen: 0,
+      activationAnswers: {},
+      selectedZone: null,
+      placements: {},
+      selectedReading: null,
+      readingAnswers: {}
+    };
+
+    const screens = Array.from(document.querySelectorAll(".screen"));
+    const pills = Array.from(document.querySelectorAll("[data-pill]"));
+    const progressBar = document.getElementById("progressBar");
+    const progressText = document.getElementById("progressText");
+    const backBtn = document.getElementById("backBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const activationGrid = document.getElementById("activationGrid");
+    const axis = document.getElementById("axis");
+    const zoneBank = document.getElementById("zoneBank");
+    const readingGrid = document.getElementById("readingGrid");
+    const stage = document.querySelector(".stage");
+
+    function checkIcon() {
+      return '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    }
+
+    function warnIcon() {
+      return '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 8v5M12 17h.01M10.3 3.9 2.5 18a2 2 0 0 0 1.8 3h15.4a2 2 0 0 0 1.8-3L13.7 3.9a2 2 0 0 0-3.4 0Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    }
+
+    function showFeedback(targetId, type, html) {
+      const box = document.getElementById(targetId);
+      box.className = `feedback visible ${type === "warn" ? "warn" : ""}`;
+      box.innerHTML = `${type === "warn" ? warnIcon() : checkIcon()}<span>${html}</span>`;
+    }
+
+    function correctCount(items, answers) {
+      return items.filter(item => answers[item.id] === item.answer).length;
+    }
+
+    function readingCorrectCount() {
+      return readingQuestions.filter(item => Number(state.readingAnswers[item.id]) === item.answer).length;
+    }
+
+    function makeQuizCard(item, index, answers, groupName) {
+      const selected = answers[item.id];
+      const isAnswered = selected !== undefined;
+      const isCorrect = selected === item.answer;
+      const card = document.createElement("div");
+      card.className = `quiz-card ${isAnswered ? (isCorrect ? "correct" : "incorrect") : ""}`;
+      card.innerHTML = `
+        <div class="quiz-title">
+          <span class="num">${index + 1}</span>
+          <p>${item.text}</p>
+        </div>
+        <div class="answer-grid" data-${groupName}="${item.id}">
+          ${item.options.map(option => `
+            <button class="answer ${selected === option ? "selected" : ""} ${isAnswered && option === item.answer ? "correct" : ""} ${selected === option && !isCorrect ? "incorrect" : ""}" type="button" data-value="${option}">
+              ${option}
+            </button>
+          `).join("")}
+        </div>
+        <p class="micro-feedback ${isAnswered ? "visible" : ""}">${isCorrect ? item.feedback : "Casi. Revisa la referencia cero y vuelve a mirar la dirección."}</p>
+      `;
+      return card;
+    }
+
+    function renderActivation() {
+      activationGrid.innerHTML = "";
+      activationQuestions.forEach((item, index) => activationGrid.appendChild(makeQuizCard(item, index, state.activationAnswers, "activation")));
+      activationGrid.onclick = event => {
+        const button = event.target.closest(".answer");
+        if (!button) return;
+        const wrap = button.closest("[data-activation]");
+        if (!wrap) return;
+        state.activationAnswers[wrap.dataset.activation] = button.dataset.value;
+        save();
+        renderActivation();
+      };
+    }
+
+    function positionFor(value) {
+      return 50 + (value / 10) * 43;
+    }
+
+    function readingPositionFor(value) {
+      return 50 + (value / 8) * 43;
+    }
+
+    function formatSigned(value) {
+      return value > 0 ? `+${value}` : `${value}`;
+    }
+
+    function placeZone(zoneId, value) {
+      const occupiedZone = zones.find(zone => state.placements[zone.id] === value && zone.id !== zoneId);
+      if (occupiedZone) delete state.placements[occupiedZone.id];
+      state.placements[zoneId] = value;
+      state.selectedZone = null;
+      save();
+      renderAxis();
+      renderZoneBank();
+      showFeedback("feedback2", "ok", "Zona ubicada. Cuando termines, pulsa continuar para revisar.");
+    }
+
+    function makePlacedChip(zone) {
+      return `
+        <span class="placed-chip">
+          <span class="icon">${zone.icon}</span>
+          <strong>${zone.label}</strong>
+        </span>
+      `;
+    }
+
+    function renderAxis() {
+      axis.innerHTML = '<div class="axis-line"></div>';
+      for (let value = -10; value <= 10; value += 1) {
+        const tick = document.createElement("div");
+        tick.className = "tick";
+        tick.style.left = `${positionFor(value)}%`;
+        tick.innerHTML = `<span>${value % 2 === 0 ? formatSigned(value) : ""}</span>`;
+        axis.appendChild(tick);
+      }
+
+      placementOptions.forEach(value => {
+        const slot = document.createElement("button");
+        const placedZone = zones.find(zone => state.placements[zone.id] === value);
+        slot.className = `drop-slot ${placedZone ? "filled" : ""}`;
+        slot.type = "button";
+        slot.style.left = `${positionFor(value)}%`;
+        slot.dataset.value = value;
+        slot.setAttribute("aria-label", `Ubicar en ${formatSigned(value)}`);
+        slot.title = placedZone ? `${placedZone.label}: ${formatSigned(value)}` : `Ubicar en ${formatSigned(value)}`;
+        slot.innerHTML = placedZone ? makePlacedChip(placedZone) : '<span class="ghost">+</span>';
+
+        slot.addEventListener("click", () => {
+          if (placedZone && !state.selectedZone) {
+            delete state.placements[placedZone.id];
+            state.selectedZone = placedZone.id;
+            save();
+            renderAxis();
+            renderZoneBank();
+            showFeedback("feedback2", "warn", "Puedes mover esa zona: toca otra posición de la recta.");
+            return;
+          }
+          if (!state.selectedZone) {
+            showFeedback("feedback2", "warn", "Primero elige una tarjeta de la parte inferior.");
+            return;
+          }
+          placeZone(state.selectedZone, Number(slot.dataset.value));
+        });
+
+        slot.addEventListener("dragover", event => {
+          event.preventDefault();
+          slot.classList.add("over");
+        });
+        slot.addEventListener("dragleave", () => slot.classList.remove("over"));
+        slot.addEventListener("drop", event => {
+          event.preventDefault();
+          slot.classList.remove("over");
+          const zoneId = event.dataTransfer.getData("text/plain");
+          if (zoneId) placeZone(zoneId, Number(slot.dataset.value));
+        });
+
+        axis.appendChild(slot);
+      });
+    }
+
+    function renderZoneBank() {
+      zoneBank.innerHTML = "";
+      const unplacedZones = zones.filter(zone => state.placements[zone.id] === undefined);
+      unplacedZones.forEach(zone => {
+        const card = document.createElement("button");
+        card.className = `zone-card ${state.selectedZone === zone.id ? "selected" : ""}`;
+        card.type = "button";
+        card.draggable = true;
+        card.dataset.zone = zone.id;
+        card.innerHTML = `
+          <span class="icon">${zone.icon}</span>
+          <span><strong>${zone.label}</strong><small>${zone.hint}</small></span>
+        `;
+        card.addEventListener("click", () => {
+          state.selectedZone = state.selectedZone === zone.id ? null : zone.id;
+          save();
+          renderZoneBank();
+          renderAxis();
+        });
+        card.addEventListener("dragstart", event => {
+          event.dataTransfer.setData("text/plain", zone.id);
+          event.dataTransfer.effectAllowed = "move";
+        });
+        zoneBank.appendChild(card);
+      });
+    }
+
+    function renderReading() {
+      readingGrid.innerHTML = "";
+      readingQuestions.forEach((item, index) => {
+        const selected = state.readingAnswers[item.id];
+        const answered = selected !== undefined;
+        const isCorrect = Number(selected) === item.answer;
+        const card = document.createElement("div");
+        card.className = `reading-card ${answered ? (isCorrect ? "correct" : "incorrect") : ""}`;
+        card.innerHTML = `
+          <div class="reading-title">
+            <span class="num">${index + 1}</span>
+            <p>${item.text}</p>
+          </div>
+          <div class="reading-token-row">
+            <button class="reading-token ${state.selectedReading === item.id ? "selected" : ""}" type="button" draggable="true" data-reading-token="${item.id}">
+              ${item.token}
+            </button>
+            <span class="drag-instruction">Arrastra esta ficha sobre la recta.</span>
+          </div>
+          <div class="reading-axis-wrap" aria-label="Mini recta numérica">
+            <div class="reading-axis" data-reading-axis="${item.id}">
+              <div class="reading-axis-line"></div>
+            </div>
+          </div>
+          <p class="micro-feedback ${answered ? "visible" : ""}">${isCorrect ? item.feedback : "Casi. Mueve la ficha y revisa la distancia desde el cero."}</p>
+        `;
+        const miniAxis = card.querySelector(".reading-axis");
+        for (let value = -8; value <= 8; value += 1) {
+          const tick = document.createElement("div");
+          tick.className = "reading-tick";
+          tick.style.left = `${readingPositionFor(value)}%`;
+          tick.innerHTML = `<span>${value % 2 === 0 ? formatSigned(value) : ""}</span>`;
+          miniAxis.appendChild(tick);
+        }
+        for (let value = -8; value <= 8; value += 1) {
+          const slot = document.createElement("button");
+          const filled = Number(selected) === value;
+          slot.className = `reading-slot ${filled ? "filled" : ""}`;
+          slot.type = "button";
+          slot.style.left = `${readingPositionFor(value)}%`;
+          slot.dataset.readingId = item.id;
+          slot.dataset.value = value;
+          slot.setAttribute("aria-label", `${item.token} en ${formatSigned(value)}`);
+          slot.innerHTML = filled ? `<span class="placed-answer">${formatSigned(value)}</span>` : '<span class="ghost">+</span>';
+          slot.addEventListener("click", () => {
+            if (state.selectedReading && state.selectedReading !== item.id) {
+              showFeedback("feedback3", "warn", "Esa ficha pertenece a otra recta. Usa la ficha de esta pregunta.");
+              return;
+            }
+            state.readingAnswers[item.id] = Number(slot.dataset.value);
+            state.selectedReading = null;
+            save();
+            renderReading();
+          });
+          slot.addEventListener("dragover", event => {
+            event.preventDefault();
+            slot.classList.add("over");
+          });
+          slot.addEventListener("dragleave", () => slot.classList.remove("over"));
+          slot.addEventListener("drop", event => {
+            event.preventDefault();
+            slot.classList.remove("over");
+            const readingId = event.dataTransfer.getData("text/plain");
+            if (readingId !== item.id) {
+              showFeedback("feedback3", "warn", "Esa ficha pertenece a otra recta. Ubica cada ficha en su propia pregunta.");
+              return;
+            }
+            state.readingAnswers[item.id] = Number(slot.dataset.value);
+            state.selectedReading = null;
+            save();
+            renderReading();
+          });
+          miniAxis.appendChild(slot);
+        }
+        const token = card.querySelector(".reading-token");
+        token.addEventListener("click", () => {
+          state.selectedReading = state.selectedReading === item.id ? null : item.id;
+          save();
+          renderReading();
+        });
+        token.addEventListener("dragstart", event => {
+          event.dataTransfer.setData("text/plain", item.id);
+          event.dataTransfer.effectAllowed = "move";
+        });
+        readingGrid.appendChild(card);
+      });
+    }
+
+    function validateCurrent() {
+      if (state.screen === 0) return true;
+
+      if (state.screen === 1) {
+        const answered = activationQuestions.filter(item => state.activationAnswers[item.id] !== undefined).length;
+        const correct = correctCount(activationQuestions, state.activationAnswers);
+        if (answered < activationQuestions.length) {
+          showFeedback("feedback1", "warn", "Responde todas las tarjetas antes de continuar.");
+          return false;
+        }
+        if (correct < activationQuestions.length) {
+          showFeedback("feedback1", "warn", `Tienes ${correct} de ${activationQuestions.length} respuestas correctas. Revisa las tarjetas naranjas.`);
+          return false;
+        }
+        showFeedback("feedback1", "ok", "¡Listo! Ya tienes claro el punto de referencia del mapa.");
+        return true;
+      }
+
+      if (state.screen === 2) {
+        const placed = zones.filter(zone => state.placements[zone.id] !== undefined).length;
+        const correct = zones.filter(zone => state.placements[zone.id] === zone.value).length;
+        if (placed < zones.length) {
+          showFeedback("feedback2", "warn", "Falta ubicar alguna zona de la granja.");
+          return false;
+        }
+        if (correct < zones.length) {
+          showFeedback("feedback2", "warn", `Tienes ${correct} de ${zones.length} zonas bien ubicadas. Revisa signo y distancia respecto al cero.`);
+          return false;
+        }
+        showFeedback("feedback2", "ok", "¡Mapa completo! Ubicaste las zonas respecto a la casa principal.");
+        return true;
+      }
+
+      if (state.screen === 3) {
+        const answered = readingQuestions.filter(item => state.readingAnswers[item.id] !== undefined).length;
+        const correct = readingCorrectCount();
+        if (answered < readingQuestions.length) {
+          showFeedback("feedback3", "warn", "Falta responder alguna lectura del mapa.");
+          return false;
+        }
+        if (correct < readingQuestions.length) {
+          showFeedback("feedback3", "warn", `Tienes ${correct} de ${readingQuestions.length} respuestas correctas. Revisa posición, opuestos y punto medio.`);
+          return false;
+        }
+        showFeedback("feedback3", "ok", "¡Excelente! Ya lees posiciones en la recta numérica.");
+        return true;
+      }
+
+      return true;
+    }
+
+    function goTo(index) {
+      state.screen = Math.max(0, Math.min(4, index));
+      stage.classList.toggle("wide-mode", state.screen === 2 || state.screen === 3);
+      screens.forEach(screen => screen.classList.toggle("active", Number(screen.dataset.screen) === state.screen));
+      pills.forEach((pill, idx) => {
+        pill.classList.toggle("active", idx === state.screen);
+        pill.classList.toggle("done", idx < state.screen);
+      });
+      backBtn.disabled = state.screen === 0;
+      nextBtn.innerHTML = state.screen === 4
+        ? 'Terminado <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4 4L19 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+        : 'Continuar <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 18 6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      updateProgress();
+      if (state.screen === 4) renderSummary();
+      save();
+    }
+
+    function updateProgress() {
+      let completed = state.screen;
+      if (correctCount(activationQuestions, state.activationAnswers) === activationQuestions.length) completed = Math.max(completed, 1);
+      if (zones.every(zone => state.placements[zone.id] === zone.value)) completed = Math.max(completed, 2);
+      if (readingCorrectCount() === readingQuestions.length) completed = Math.max(completed, 3);
+      if (state.screen === 4) completed = 4;
+      const percent = Math.round((completed / 4) * 100);
+      progressBar.style.width = `${percent}%`;
+      progressText.textContent = `${percent}%`;
+    }
+
+    function renderSummary() {
+      const activationCorrect = correctCount(activationQuestions, state.activationAnswers);
+      const placementCorrect = zones.filter(zone => state.placements[zone.id] === zone.value).length;
+      const readingCorrect = readingCorrectCount();
+      document.getElementById("finalMessage").textContent = "Completaste el mapa de la granja y relacionaste signo, dirección y distancia.";
+      document.getElementById("teacherEvidence").innerHTML = `
+        Activación del mapa: <strong>${activationCorrect}/${activationQuestions.length}</strong>.<br>
+        Zonas ubicadas: <strong>${placementCorrect}/${zones.length}</strong>.<br>
+        Lectura de puntos: <strong>${readingCorrect}/${readingQuestions.length}</strong>.
+      `;
+    }
+
+    function save() {
+      localStorage.setItem(storageKey, JSON.stringify(state));
+      updateProgress();
+    }
+
+    function load() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey));
+        if (saved && typeof saved === "object") {
+          state = {
+            ...state,
+            ...saved,
+            activationAnswers: { ...state.activationAnswers, ...(saved.activationAnswers || {}) },
+            placements: { ...state.placements, ...(saved.placements || {}) },
+            readingAnswers: { ...state.readingAnswers, ...(saved.readingAnswers || {}) },
+            selectedZone: null
+          };
+        }
+      } catch (error) {
+        localStorage.removeItem(storageKey);
+      }
+    }
+
+    backBtn.addEventListener("click", () => goTo(state.screen - 1));
+    nextBtn.addEventListener("click", () => {
+      if (state.screen === 4) return;
+      if (validateCurrent()) goTo(state.screen + 1);
+    });
+    resetBtn.addEventListener("click", () => {
+      localStorage.removeItem(storageKey);
+      state = {
+        screen: 0,
+        activationAnswers: {},
+        selectedZone: null,
+        placements: {},
+        selectedReading: null,
+        readingAnswers: {}
+      };
+      renderActivation();
+      renderAxis();
+      renderZoneBank();
+      renderReading();
+      document.querySelectorAll(".feedback").forEach(box => {
+        box.className = "feedback";
+        box.innerHTML = "";
+      });
+      goTo(0);
+    });
+
+    load();
+    renderActivation();
+    renderAxis();
+    renderZoneBank();
+    renderReading();
+    const hashScreens = {
+      "#inicio": 0,
+      "#activacion": 1,
+      "#mapa": 2,
+      "#lectura": 3,
+      "#cierre": 4
+    };
+    goTo(hashScreens[window.location.hash] ?? state.screen ?? 0);
+  </script>
+</body>
+</html>

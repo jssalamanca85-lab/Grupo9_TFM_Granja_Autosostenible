@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Granja autosostenible | Ruta de números enteros</title>
+  <style>
+    :root {
+      --leaf: #168a4a;
+      --leaf-soft: #e7f5dd;
+      --sun: #f5b942;
+      --ink: #243a32;
+      --muted: #60756d;
+      --panel: #fffdf4;
+      --line: #d8c999;
+      --radius: 18px;
+      --shadow: 0 18px 45px rgba(40, 79, 56, .18);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 8%, rgba(245, 185, 66, .32), transparent 28%),
+        linear-gradient(135deg, #d9f6f0 0%, #fff2ce 52%, #e7f5dd 100%);
+    }
+
+    .cover {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(320px, .88fr) minmax(420px, 1.12fr);
+      gap: clamp(22px, 4vw, 54px);
+      align-items: center;
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: clamp(18px, 4vw, 46px);
+    }
+
+    .mission {
+      display: grid;
+      gap: 18px;
+    }
+
+    .eyebrow {
+      width: max-content;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: var(--leaf-soft);
+      border: 1px solid #b7dfaa;
+      color: var(--leaf);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      font-size: .78rem;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 4.4rem);
+      line-height: .95;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      color: var(--muted);
+      font-size: clamp(1rem, 1.6vw, 1.2rem);
+      line-height: 1.55;
+      font-weight: 700;
+      max-width: 62ch;
+    }
+
+    .role-card,
+    .mission-card {
+      padding: 18px;
+      border-radius: var(--radius);
+      background: rgba(255, 253, 242, .92);
+      border: 1px solid rgba(139, 111, 35, .24);
+      box-shadow: 0 12px 28px rgba(60, 60, 30, .10);
+      display: grid;
+      gap: 12px;
+    }
+
+    .role-card h2,
+    .mission-card h2 {
+      font-size: 1.1rem;
+    }
+
+    .role-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .role-list li {
+      list-style: none;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: #fffaf0;
+      border: 1px solid var(--line);
+      color: #4c604f;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .start-panel {
+      display: grid;
+      gap: 12px;
+      padding: 18px;
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, .74);
+      border: 1px solid var(--line);
+    }
+
+    label {
+      font-weight: 900;
+    }
+
+    input {
+      width: 100%;
+      min-height: 48px;
+      border-radius: 14px;
+      border: 1px solid #cfbd86;
+      background: #fffefb;
+      color: var(--ink);
+      padding: 10px 12px;
+      font: inherit;
+      font-weight: 800;
+    }
+
+    .btn {
+      min-height: 48px;
+      border: 0;
+      border-radius: 14px;
+      padding: 10px 16px;
+      color: white;
+      background: var(--leaf);
+      font: inherit;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .btn.secondary {
+      color: #3d4d43;
+      background: #fffaf0;
+      border: 1px solid #cfc2ad;
+    }
+
+    .farm-panel {
+      position: relative;
+      min-height: min(650px, 80vh);
+      overflow: hidden;
+      border-radius: var(--radius);
+      border: 1px solid rgba(22, 138, 74, .32);
+      background: #83d7df;
+      box-shadow: var(--shadow);
+    }
+
+    .farm-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: url("assets/granja3.png") center / cover no-repeat;
+      filter: blur(12px) saturate(1.08);
+      transform: scale(1.06);
+      opacity: .72;
+    }
+
+    .farm-panel img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+    }
+
+    .module-view {
+      display: none;
+      min-height: 100vh;
+      grid-template-rows: auto 1fr;
+      background: #f7f3df;
+    }
+
+    .module-view.active {
+      display: grid;
+    }
+
+    .module-nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 14px;
+      background: rgba(255, 253, 242, .96);
+      border-bottom: 1px solid rgba(139, 111, 35, .28);
+      box-shadow: 0 8px 24px rgba(40, 79, 56, .08);
+      backdrop-filter: blur(10px);
+    }
+
+    .student-chip {
+      display: grid;
+      gap: 2px;
+      min-width: 150px;
+    }
+
+    .student-chip span {
+      color: var(--muted);
+      font-size: .76rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .student-chip strong {
+      line-height: 1.15;
+    }
+
+    .module-buttons {
+      display: flex;
+      gap: 7px;
+      overflow-x: auto;
+      padding: 2px;
+      scrollbar-width: thin;
+    }
+
+    .module-button {
+      flex: 0 0 auto;
+      min-width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      border: 1px solid #cfbd86;
+      background: #fffaf0;
+      color: var(--ink);
+      font: inherit;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .module-button.active {
+      color: white;
+      background: var(--leaf);
+      border-color: var(--leaf);
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .nav-actions .btn {
+      min-height: 42px;
+      padding: 8px 12px;
+      white-space: nowrap;
+    }
+
+    .frame-shell {
+      min-height: 0;
+    }
+
+    iframe {
+      display: block;
+      width: 100%;
+      height: calc(100vh - 64px);
+      border: 0;
+      background: white;
+    }
+
+    @media (max-width: 900px) {
+      .cover {
+        grid-template-columns: 1fr;
+      }
+
+      .farm-panel {
+        min-height: 420px;
+      }
+
+      .module-nav {
+        grid-template-columns: 1fr;
+      }
+
+      .student-chip {
+        min-width: 0;
+      }
+
+      .nav-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .nav-actions .btn {
+        width: 100%;
+      }
+
+      iframe {
+        height: calc(100vh - 150px);
+      }
+    }
+
+    @media (max-width: 560px) {
+      .cover {
+        padding: 14px;
+      }
+
+      .farm-panel {
+        min-height: 330px;
+      }
+
+      .role-card,
+      .mission-card,
+      .start-panel {
+        padding: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <section class="cover" id="cover">
+    <div class="mission">
+      <span class="eyebrow">Recurso interactivo</span>
+      <h1>Granja autosostenible</h1>
+      <p class="lead">Vas a convertirte en responsable de una granja que necesita estabilizar sus sistemas de agua, energía, temperatura, presupuesto, señal y cultivos usando números enteros.</p>
+
+      <div class="role-card">
+        <h2>Tu rol</h2>
+        <ul class="role-list">
+          <li>Serás el encargado de leer el panel de control de la granja.</li>
+          <li>Tomarás decisiones usando positivos, negativos y el cero como referencia.</li>
+          <li>Usarás rectas numéricas, comparaciones, sumas, restas y argumentos para justificar tus decisiones.</li>
+        </ul>
+      </div>
+
+      <div class="mission-card">
+        <h2>Tu misión</h2>
+        <p class="lead">Completar ocho módulos breves para que la granja funcione mejor. Puedes avanzar a tu ritmo y volver a cualquier módulo desde la barra superior.</p>
+      </div>
+
+      <div class="start-panel">
+        <label for="studentName">Nombre del estudiante</label>
+        <input id="studentName" type="text" autocomplete="name" placeholder="Escribe tu nombre">
+        <button class="btn" id="startBtn" type="button">Iniciar misión</button>
+      </div>
+    </div>
+
+    <div class="farm-panel" aria-label="Imagen de la granja autosostenible">
+      <img src="assets/granja3.png" alt="Granja autosostenible con paneles solares, depósito de agua y cultivos">
+    </div>
+  </section>
+
+  <section class="module-view" id="moduleView" aria-label="Módulos del recurso">
+    <header class="module-nav">
+      <div class="student-chip">
+        <span>Responsable de la granja</span>
+        <strong id="studentLabel">Estudiante</strong>
+      </div>
+      <nav class="module-buttons" id="moduleButtons" aria-label="Seleccionar módulo"></nav>
+      <div class="nav-actions">
+        <button class="btn secondary" id="homeBtn" type="button">Inicio</button>
+        <button class="btn" id="nextBtn" type="button">Siguiente</button>
+      </div>
+    </header>
+    <main class="frame-shell">
+      <iframe id="moduleFrame" title="Módulo seleccionado" src="modulo_1_granja_autosostenible.html"></iframe>
+    </main>
+  </section>
+
+  <script>
+    const storageKey = "granja_recurso_portada_v2";
+    const modules = [
+      "modulo_1_granja_autosostenible.html",
+      "modulo_2_granja_autosostenible.html",
+      "modulo_3_granja_autosostenible.html",
+      "modulo_4_granja_autosostenible.html",
+      "modulo_5_granja_autosostenible.html",
+      "modulo_6_granja_autosostenible.html",
+      "modulo_7_granja_autosostenible.html",
+      "modulo_8_granja_autosostenible.html"
+    ];
+
+    let state = {
+      studentName: "",
+      started: false,
+      current: 0
+    };
+
+    const cover = document.getElementById("cover");
+    const moduleView = document.getElementById("moduleView");
+    const studentName = document.getElementById("studentName");
+    const studentLabel = document.getElementById("studentLabel");
+    const startBtn = document.getElementById("startBtn");
+    const homeBtn = document.getElementById("homeBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const moduleButtons = document.getElementById("moduleButtons");
+    const moduleFrame = document.getElementById("moduleFrame");
+
+    function load() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey));
+        if (saved && typeof saved === "object") state = { ...state, ...saved };
+      } catch {}
+    }
+
+    function save() {
+      localStorage.setItem(storageKey, JSON.stringify(state));
+      render();
+    }
+
+    function renderButtons() {
+      moduleButtons.innerHTML = "";
+      modules.forEach((_, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `module-button ${state.current === index ? "active" : ""}`;
+        button.textContent = index + 1;
+        button.setAttribute("aria-label", `Abrir módulo ${index + 1}`);
+        button.addEventListener("click", () => {
+          state.current = index;
+          state.started = true;
+          save();
+        });
+        moduleButtons.appendChild(button);
+      });
+    }
+
+    function render() {
+      studentName.value = state.studentName || "";
+      studentLabel.textContent = state.studentName || "Estudiante";
+      cover.style.display = state.started ? "none" : "grid";
+      moduleView.classList.toggle("active", state.started);
+      renderButtons();
+      const file = modules[state.current];
+      if (!moduleFrame.src.endsWith(file)) moduleFrame.src = file;
+      nextBtn.textContent = state.current === modules.length - 1 ? "Módulo 1" : "Siguiente";
+    }
+
+    studentName.addEventListener("input", event => {
+      state.studentName = event.target.value.trim();
+      localStorage.setItem(storageKey, JSON.stringify(state));
+    });
+
+    startBtn.addEventListener("click", () => {
+      state.studentName = studentName.value.trim();
+      state.started = true;
+      state.current = 0;
+      save();
+    });
+
+    homeBtn.addEventListener("click", () => {
+      state.started = false;
+      save();
+    });
+
+    nextBtn.addEventListener("click", () => {
+      state.current = (state.current + 1) % modules.length;
+      state.started = true;
+      save();
+    });
+
+    load();
+    render();
+  </script>
+</body>
+</html>
