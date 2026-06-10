@@ -1,0 +1,951 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Módulo 5 | Registros diarios de la granja</title>
+  <style>
+    :root {
+      --leaf: #168a4a;
+      --leaf-soft: #e7f5dd;
+      --sun: #f5b942;
+      --sky: #d8f5f4;
+      --ink: #243a32;
+      --muted: #60756d;
+      --panel: #fffdf4;
+      --line: #d8c999;
+      --warn: #b66b25;
+      --radius: 18px;
+      --shadow: 0 18px 45px rgba(40, 79, 56, .18);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 10%, rgba(245,185,66,.26), transparent 28%),
+        linear-gradient(135deg, #d9f6f0 0%, #fff2ce 54%, #e7f5dd 100%);
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr minmax(260px, 420px);
+      gap: 20px;
+      align-items: center;
+      padding: 18px clamp(16px, 4vw, 44px);
+      background: rgba(255,255,255,.72);
+      border-bottom: 1px solid rgba(74, 112, 82, .16);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .brand { display: flex; gap: 12px; align-items: center; }
+    .brand-mark {
+      width: 46px; height: 46px; border-radius: 14px;
+      display: grid; place-items: center;
+      background: var(--leaf-soft);
+      border: 1px solid #b7dfaa;
+      color: var(--leaf);
+      font-weight: 900;
+      font-size: 1.3rem;
+    }
+    .title h1 { font-size: clamp(1.1rem, 2.2vw, 1.55rem); line-height: 1.1; }
+    .title p { color: var(--muted); font-weight: 700; margin-top: 2px; }
+    .progress-wrap { display: grid; gap: 8px; }
+    .progress-label { display: flex; justify-content: space-between; color: var(--muted); font-weight: 800; font-size: .88rem; }
+    .progress { height: 13px; background: #d8ead6; border-radius: 999px; overflow: hidden; border: 1px solid rgba(0,0,0,.06); }
+    .progress span { display: block; height: 100%; width: 0%; background: linear-gradient(90deg, var(--leaf), var(--sun)); transition: width .25s ease; }
+
+    main { width: min(1180px, 100%); margin: 0 auto; padding: clamp(16px, 4vw, 38px); }
+    .stage {
+      display: grid;
+      grid-template-columns: minmax(280px, .86fr) minmax(340px, 1.14fr);
+      gap: clamp(16px, 3vw, 30px);
+      align-items: start;
+    }
+    .stage.wide-mode { grid-template-columns: 1fr; }
+    .stage.wide-mode .scene { display: none; }
+
+    .scene {
+      position: relative;
+      height: 610px;
+      min-height: 610px;
+      overflow: hidden;
+      border-radius: var(--radius);
+      border: 1px solid rgba(22,138,74,.28);
+      background: #83d7df;
+      box-shadow: var(--shadow);
+    }
+    .scene::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: url("assets/granja5.png") center / cover no-repeat;
+      filter: blur(12px) saturate(1.08);
+      transform: scale(1.06);
+      opacity: .72;
+    }
+    .farm-image {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      z-index: 1;
+    }
+    .map-overlay {
+      position: absolute;
+      left: 20px; right: 20px; top: 50%;
+      transform: translateY(-50%);
+      z-index: 2;
+      padding: 16px;
+      border-radius: var(--radius);
+      background: rgba(255,253,242,.86);
+      border: 1px solid rgba(139,111,35,.24);
+      box-shadow: 0 12px 28px rgba(60,60,30,.14);
+    }
+    .map-overlay h3 { font-size: 1rem; margin-bottom: 8px; }
+    .map-overlay p { line-height: 1.45; }
+    .rule-strip {
+      margin-top: 14px;
+      display: grid;
+      gap: 8px;
+    }
+    .rule-strip span {
+      padding: 10px;
+      border-radius: 14px;
+      background: #fff9df;
+      border: 1px solid var(--line);
+      font-weight: 900;
+      color: var(--muted);
+    }
+
+    .activity-panel {
+      min-height: 610px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      border-radius: var(--radius);
+      border: 1px solid rgba(139,111,35,.24);
+      background: rgba(255,253,242,.97);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .panel-head {
+      padding: clamp(18px, 3vw, 28px);
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #fffdf2, #fff1cc);
+    }
+    .eyebrow { color: var(--leaf); font-weight: 900; text-transform: uppercase; letter-spacing: .06em; font-size: .78rem; }
+    .panel-head h2 { margin-top: 8px; font-size: clamp(1.45rem, 3vw, 2.2rem); line-height: 1.08; }
+    .panel-head p { margin-top: 10px; color: var(--muted); line-height: 1.5; max-width: 76ch; }
+    .pills { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+    .pill {
+      border: 1px solid #d6c38c;
+      background: #fff7dc;
+      color: #6b5a28;
+      border-radius: 999px;
+      padding: 7px 11px;
+      font-weight: 900;
+      font-size: .83rem;
+    }
+    .pill.active { background: var(--leaf); border-color: var(--leaf); color: white; }
+    .pill.done { background: #dff1d8; border-color: #aad99b; color: var(--leaf); }
+
+    .screen-wrap { padding: clamp(16px, 3vw, 26px); overflow: auto; }
+    .screen { display: none; }
+    .screen.active { display: block; }
+    .stack { display: grid; gap: 14px; }
+    .grid { display: grid; gap: 14px; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .soft-note {
+      padding: 14px 16px;
+      border-radius: var(--radius);
+      background: var(--leaf-soft);
+      border: 1px solid #b8dda9;
+      line-height: 1.45;
+      color: #315b40;
+      font-weight: 700;
+    }
+    .card {
+      padding: 16px;
+      border-radius: var(--radius);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      display: grid;
+      gap: 12px;
+    }
+    .card.correct { background: #eff8e9; border-color: #85bd72; }
+    .card.incorrect { background: #fff4e2; border-color: #e1ad72; }
+    .question-title { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; line-height: 1.4; font-weight: 800; }
+    .num {
+      width: 30px; height: 30px; border-radius: 50%;
+      display: inline-grid; place-items: center;
+      background: var(--leaf); color: white; font-weight: 900;
+      flex: 0 0 auto;
+    }
+
+    .answer-grid { display: grid; gap: 8px; }
+    .answer {
+      min-height: 46px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid #cfbd86;
+      background: #fffefb;
+      color: var(--ink);
+      text-align: left;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .answer.selected { border-color: var(--leaf); background: #e8f5df; color: #245d3d; }
+    .answer.correct { border-color: #85bd72; background: #eff8e9; }
+    .answer.incorrect { border-color: #e1ad72; background: #fff4e2; }
+
+    .operation-card {
+      display: grid;
+      grid-template-columns: minmax(250px, .42fr) minmax(560px, 1fr);
+      gap: 16px;
+      align-items: start;
+      padding: 16px;
+      border-radius: var(--radius);
+      background: var(--panel);
+      border: 1px solid var(--line);
+    }
+    .operation-card.correct { background: #eff8e9; border-color: #85bd72; }
+    .operation-card.incorrect { background: #fff4e2; border-color: #e1ad72; }
+    .operation-meta { display: grid; gap: 12px; }
+    .operation {
+      font-size: 1.32rem;
+      font-weight: 900;
+      color: var(--leaf);
+    }
+    .numberline-wrap {
+      overflow-x: auto;
+      padding: 4px 0 10px;
+    }
+    .numberline {
+      position: relative;
+      min-width: 640px;
+      height: 178px;
+    }
+    .line {
+      position: absolute;
+      left: 42px; right: 42px; top: 98px;
+      height: 5px; border-radius: 999px;
+      background: #35433e;
+    }
+    .tick {
+      position: absolute;
+      top: 76px;
+      width: 2px;
+      height: 44px;
+      transform: translateX(-50%);
+      background: #35433e;
+    }
+    .tick span {
+      position: absolute;
+      top: 52px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: .72rem;
+      color: var(--muted);
+      font-weight: 800;
+    }
+    .point {
+      position: absolute;
+      top: 50px;
+      transform: translateX(-50%);
+      display: grid;
+      justify-items: center;
+      gap: 4px;
+      font-weight: 900;
+    }
+    .point span {
+      width: 30px; height: 30px;
+      display: grid; place-items: center;
+      border-radius: 50%;
+      background: #fffdf2;
+      border: 2px solid var(--leaf);
+      color: var(--leaf);
+    }
+    .point.end span { background: var(--leaf); color: white; }
+    .arrow {
+      position: absolute;
+      top: 28px;
+      height: 28px;
+      border-top: 4px solid var(--sun);
+    }
+    .arrow::after {
+      content: "";
+      position: absolute;
+      top: -9px;
+      width: 14px;
+      height: 14px;
+      border-top: 4px solid var(--sun);
+      border-right: 4px solid var(--sun);
+    }
+    .arrow.right::after { right: -2px; transform: rotate(45deg); }
+    .arrow.left::after { left: -2px; transform: rotate(-135deg); }
+    .arrow-label {
+      position: absolute;
+      top: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #fff6dd;
+      border: 1px solid var(--line);
+      white-space: nowrap;
+      font-size: .78rem;
+      font-weight: 900;
+      color: #7b5b1d;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+    .field label { font-weight: 900; }
+    .field input, .field select {
+      min-height: 46px;
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid #cfbd86;
+      background: #fffefb;
+      color: var(--ink);
+      padding: 10px 12px;
+      font: inherit;
+      font-weight: 800;
+    }
+
+    .interpret-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .micro-feedback { display: none; color: var(--muted); font-size: .9rem; line-height: 1.4; }
+    .micro-feedback.visible { display: block; }
+    .feedback {
+      margin-top: 16px;
+      min-height: 46px;
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-weight: 800;
+      line-height: 1.4;
+    }
+    .feedback.visible { display: flex; }
+    .feedback.ok { background: #eff8e9; color: #285b35; border: 1px solid #a9d59e; }
+    .feedback.warn { background: #fff4e2; color: #704615; border: 1px solid #e3b06e; }
+
+    .panel-foot {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px clamp(16px, 3vw, 26px);
+      border-top: 1px solid var(--line);
+      background: rgba(255,250,230,.72);
+    }
+    .btn {
+      min-height: 46px;
+      border: 0;
+      border-radius: 14px;
+      padding: 10px 16px;
+      color: white;
+      background: var(--leaf);
+      font: inherit;
+      font-weight: 900;
+      cursor: pointer;
+    }
+    .btn.secondary { background: #fffaf0; color: #3d4d43; border: 1px solid #cfc2ad; }
+    .btn.ghost { background: transparent; color: var(--leaf); }
+    .btn[disabled] { opacity: .48; cursor: not-allowed; }
+
+    @media (max-width: 950px) {
+      .topbar, .stage, .operation-card { grid-template-columns: 1fr; }
+      .scene { height: 430px; min-height: 430px; }
+      .interpret-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 620px) {
+      main { padding: 14px; }
+      .scene { height: 390px; min-height: 390px; }
+      .map-overlay { left: 14px; right: 14px; }
+      .grid.two { grid-template-columns: 1fr; }
+      .numberline { min-width: 700px; }
+      .panel-foot { display: grid; grid-template-columns: 1fr; }
+      .btn { width: 100%; }
+    }
+      .topbar .game-stats{display:none!important}.game-stats{margin-top:10px;display:grid;gap:7px}.xp-row,.life-row{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--muted);font-weight:900;font-size:.8rem}.xp-track{height:10px;flex:1;background:#eef4df;border:1px solid rgba(0,0,0,.08);border-radius:999px;overflow:hidden}.xp-track span{display:block;height:100%;width:var(--xp,0%);background:linear-gradient(90deg,var(--leaf),var(--sun))}.lives{letter-spacing:.08em;color:#f5b942;text-shadow:0 1px 0 #8b6f23}  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">5</div>
+      <div class="title">
+        <h1>Granja autosostenible</h1>
+        <p>Módulo 5: suma de enteros como variación</p>
+      </div>
+    </div>
+    <div class="progress-wrap" aria-label="Progreso del módulo">
+      <div class="progress-label"><span>Avance</span><strong id="progressText">0%</strong></div>
+      <div class="progress"><span id="progressBar"></span></div><div class="game-stats" aria-label="Puntos de experiencia y vidas"><div class="xp-row"><span>XP</span><div class="xp-track" style="--xp:62.5%"><span></span></div><strong>500</strong></div><div class="life-row"><span>Vidas</span><span class="lives" aria-label="5 vidas">★★★★★</span></div></div>
+    </div>
+  </header>
+
+  <main>
+    <section class="stage" aria-label="Módulo 5">
+      <aside class="scene" aria-label="Granja autosostenible">
+        <img class="farm-image" src="assets/granja5.png" alt="Granja autosostenible con paneles solares, depósito de agua y cultivos">
+        <div class="map-overlay">
+          <h3>Registros diarios</h3>
+          <p>Sumar un entero actualiza el estado de un sistema: un positivo avanza hacia la derecha y un negativo hacia la izquierda.</p>
+          <div class="rule-strip" aria-hidden="true">
+            <span>+ cambio: aumenta o recupera</span>
+            <span>- cambio: disminuye o consume</span>
+          </div>
+        </div>
+      </aside>
+
+      <section class="activity-panel">
+        <div class="panel-head">
+          <span class="eyebrow">Misión de registros</span>
+          <h2>Actualizar la granja con sumas</h2>
+          <p>Usa la recta numérica para interpretar cambios diarios y calcular el nuevo estado de cada sistema.</p>
+          <div class="pills">
+            <span class="pill" data-pill>Inicio</span>
+            <span class="pill" data-pill>5.1 Activación</span>
+            <span class="pill" data-pill>5.2 Calcular</span>
+            <span class="pill" data-pill>5.3 Interpretar</span>
+            <span class="pill" data-pill>Cierre</span>
+          </div>
+        </div>
+
+        <div class="screen-wrap">
+          <article class="screen active" data-screen="0">
+            <div class="stack">
+              <p class="soft-note">En esta misión cada suma cuenta una historia: entra agua, se consume energía, baja la temperatura o se recupera presupuesto.</p>
+              <div class="grid two">
+                <div class="card">
+                  <h3>Sumar positivo</h3>
+                  <p>Desde el estado inicial, avanza hacia la derecha en la recta.</p>
+                </div>
+                <div class="card">
+                  <h3>Sumar negativo</h3>
+                  <p>Desde el estado inicial, avanza hacia la izquierda en la recta.</p>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="screen" data-screen="1">
+            <div class="stack" id="activationGrid"></div>
+            <div class="feedback" id="feedback1" role="status"></div>
+          </article>
+
+          <article class="screen" data-screen="2">
+            <p class="soft-note">Observa la flecha de la recta. Luego escribe el resultado y elige el argumento que explica el desplazamiento.</p>
+            <div class="stack" id="operationGrid"></div>
+            <div class="feedback" id="feedback2" role="status"></div>
+          </article>
+
+          <article class="screen" data-screen="3">
+            <p class="soft-note">Lee cada resultado: decide si el sistema quedó por debajo, en equilibrio o por encima de cero, y si el cambio mejoró o deterioró el estado.</p>
+            <div class="interpret-grid" id="interpretGrid"></div>
+            <div class="feedback" id="feedback3" role="status"></div>
+          </article>
+
+          <article class="screen" data-screen="4">
+            <div class="stack">
+              <div class="card correct">
+                <h3>Bitácora de registros</h3>
+                <p id="finalMessage">Completaste la misión de sumas.</p>
+              </div>
+              <div class="card">
+                <h3>Evidencia para el docente</h3>
+                <p id="teacherEvidence"></p>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="panel-foot">
+          <button class="btn secondary" id="backBtn" type="button">Atrás</button>
+          <button class="btn ghost" id="resetBtn" type="button">Reiniciar</button>
+          <button class="btn" id="nextBtn" type="button">Continuar</button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const storageKey = "granja_modulo_5_estado_v1";
+    const globalStorageKey = "granja_recurso_global_v1";
+    const moduleNumber = Number((location.pathname.match(/modulo_(\d+)/) || [])[1] || 0);
+    function defaultGlobalState(){return {lives:5,moduleProgress:Array(8).fill(0)}}
+    function readGlobalState(){try{const saved=JSON.parse(localStorage.getItem(globalStorageKey));if(saved&&typeof saved==="object"){return {lives:Number.isFinite(Number(saved.lives))?Math.max(0,Math.min(5,Number(saved.lives))):5,moduleProgress:Array.from({length:8},(_,i)=>Math.max(0,Math.min(4,Number(saved.moduleProgress?.[i]||0))))}}}catch{}return defaultGlobalState()}
+    function writeGlobalState(global){const normalized={lives:Math.max(0,Math.min(5,Number(global.lives??5))),moduleProgress:Array.from({length:8},(_,i)=>Math.max(0,Math.min(4,Number(global.moduleProgress?.[i]||0))))};let previous={};try{previous=JSON.parse(localStorage.getItem(globalStorageKey))||{}}catch{}const merged={...previous,...normalized};localStorage.setItem(globalStorageKey,JSON.stringify(merged));if(parent&&parent!==window)parent.postMessage({type:"granja:global-state",state:merged},"*")}
+    function notifyProgress(){const global=readGlobalState();const index=moduleNumber-1;if(index>=0&&index<global.moduleProgress.length){global.moduleProgress[index]=Math.max(global.moduleProgress[index],Number(state.screen||0));writeGlobalState(global)}if(parent&&parent!==window)parent.postMessage({type:"granja:module-progress",module:moduleNumber,progress:Number(state.screen||0)},"*")}
+    window.addEventListener("message",event=>{if(event.data?.type==="granja:reset-module"){localStorage.removeItem(storageKey);location.reload()}});
+
+    const activationQuestions = [
+      {
+        id: "agua",
+        text: "Si el depósito de agua está en -10 L y entran +18 L, ¿qué ocurre?",
+        options: ["Queda igual.", "Pasa a superávit.", "Baja más."],
+        answer: "Pasa a superávit.",
+        feedback: "Sí: entrar agua es sumar un positivo, por eso avanza a la derecha."
+      },
+      {
+        id: "energia",
+        text: "Si la batería tiene +6 kWh y durante la noche consume -9 kWh, ¿qué indica el cambio?",
+        options: ["Aumenta el saldo.", "No cambia.", "Disminuye el saldo."],
+        answer: "Disminuye el saldo.",
+        feedback: "Correcto: consumir energía se representa con un cambio negativo."
+      },
+      {
+        id: "negativo",
+        text: "¿Sumar un número negativo empeora siempre el estado de la granja?",
+        options: ["Sí, siempre.", "No siempre: depende del contexto.", "Nunca cambia nada."],
+        answer: "No siempre: depende del contexto.",
+        feedback: "Muy bien: el signo indica dirección del cambio, pero hay que interpretar el sistema."
+      }
+    ];
+
+    const operations = [
+      {
+        id: "deposito",
+        system: "Depósito de agua",
+        expression: "(-10) + (+18)",
+        start: -10,
+        change: 18,
+        result: 8,
+        range: { min: -12, max: 10, step: 2 },
+        prompt: "El depósito de agua estaba 10 L por debajo del mínimo y entraron 18 L.",
+        unit: "L",
+        arguments: [
+          "Sumo 10 y 18 porque ambos son déficits.",
+          "Desde -10 avanzo 18 unidades a la derecha y llego a +8.",
+          "El resultado debe ser negativo porque se empieza en -10."
+        ],
+        argument: "Desde -10 avanzo 18 unidades a la derecha y llego a +8.",
+        status: "por encima",
+        changeType: "mejora"
+      },
+      {
+        id: "bateria",
+        system: "Batería",
+        expression: "(+6) + (-9)",
+        start: 6,
+        change: -9,
+        result: -3,
+        range: { min: -6, max: 8, step: 2 },
+        prompt: "La batería tenía +6 kWh y durante la noche consumió 9 kWh.",
+        unit: "kWh",
+        arguments: [
+          "Todo consumo deja el resultado en 0.",
+          "Desde +6 avanzo 9 unidades a la izquierda y llego a -3.",
+          "Como 6 es positivo, el resultado final debe ser positivo."
+        ],
+        argument: "Desde +6 avanzo 9 unidades a la izquierda y llego a -3.",
+        status: "por debajo",
+        changeType: "deterioro"
+      },
+      {
+        id: "temperatura",
+        system: "Temperatura del invernadero",
+        expression: "(-3) + (-5)",
+        start: -3,
+        change: -5,
+        result: -8,
+        range: { min: -10, max: 0, step: 1 },
+        prompt: "El invernadero estaba a -3 °C y la temperatura bajó 5 grados más.",
+        unit: "°C",
+        arguments: [
+          "Dos negativos siempre dan positivo.",
+          "El resultado es -2 porque resto 5 - 3.",
+          "Desde -3 avanzo 5 unidades a la izquierda y llego a -8."
+        ],
+        argument: "Desde -3 avanzo 5 unidades a la izquierda y llego a -8.",
+        status: "por debajo",
+        changeType: "deterioro"
+      },
+      {
+        id: "presupuesto",
+        system: "Presupuesto",
+        expression: "(-25) + (+40)",
+        start: -25,
+        change: 40,
+        result: 15,
+        range: { min: -30, max: 20, step: 5 },
+        prompt: "El presupuesto estaba en -25 $ y se recuperaron 40 $.",
+        unit: "$",
+        arguments: [
+          "El resultado es -65 porque sumo los valores absolutos.",
+          "Desde -25 avanzo 40 unidades a la derecha y llego a +15.",
+          "El presupuesto queda en 0 porque hubo recuperación."
+        ],
+        argument: "Desde -25 avanzo 40 unidades a la derecha y llego a +15.",
+        status: "por encima",
+        changeType: "mejora"
+      }
+    ];
+
+    let state = {
+      screen: 0,
+      activationAnswers: {},
+      operationAnswers: {},
+      interpretations: {}
+    };
+
+    const screens = [...document.querySelectorAll(".screen")];
+    const pills = [...document.querySelectorAll("[data-pill]")];
+    const progressBar = document.getElementById("progressBar");
+    const progressText = document.getElementById("progressText");
+    const backBtn = document.getElementById("backBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const stage = document.querySelector(".stage");
+
+    function formatSigned(value) { return value > 0 ? `+${value}` : `${value}`; }
+    function pos(value, range) {
+      return 7 + ((value - range.min) / (range.max - range.min)) * 86;
+    }
+    function ticksFor(range) {
+      const ticks = [];
+      for (let value = range.min; value <= range.max; value += range.step) ticks.push(value);
+      return ticks;
+    }
+
+    function showFeedback(id, type, text) {
+      const box = document.getElementById(id);
+      box.className = `feedback visible ${type}`;
+      box.textContent = text;
+    }
+
+    const baseShowFeedback = showFeedback;
+    function livesValue(){const global=readGlobalState();state.lives=global.lives;return state.lives}
+    function updateLives() {
+      const lives = livesValue();
+      document.querySelectorAll(".lives").forEach(box => {
+        box.textContent = "★".repeat(lives) + "☆".repeat(5 - lives);
+        box.setAttribute("aria-label", lives === 1 ? "1 vida" : lives + " vidas");
+      });
+      if (typeof nextBtn !== "undefined" && nextBtn) nextBtn.disabled = lives <= 0 || state.screen === 4;
+    }
+    function shouldLoseLife(message) {
+      const text = String(message).replace(/<[^>]*>/g, "");
+      if (/Falta|Completa|Completa las|Responde|Primero|Puedes mover|Has escrito/.test(text)) return false;
+      return /Tienes|Revisa|Ordena|pertenece a otra recta|Necesitas al menos|más crítico|más cerca de cero|no coincide|incorrect/.test(text);
+    }
+    function loseLife(){const global=readGlobalState();if(global.lives<=0)return 0;global.lives-=1;writeGlobalState(global);state.lives=global.lives;localStorage.setItem(storageKey,JSON.stringify(state));updateLives();notifyProgress();return state.lives}
+    showFeedback = function(id, type, text) {
+      let message = text;
+      if (type === "warn" && shouldLoseLife(text)) {
+        const lives = loseLife();
+        message = lives <= 0
+          ? text + " Te quedaste sin vidas. Pulsa Reiniciar para volver a intentarlo."
+          : text + " Pierdes una vida. Te quedan " + lives + ".";
+      }
+      baseShowFeedback(id, type, message);
+    };
+
+
+    function save() {
+      localStorage.setItem(storageKey, JSON.stringify(state));
+      updateProgress();
+    }
+
+    function load() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey));
+        if (saved && typeof saved === "object") state = { ...state, ...saved };
+      } catch {}
+    }
+
+    function correctCount(items, answers) {
+      return items.filter(item => answers[item.id] === item.answer).length;
+    }
+
+    function renderActivation() {
+      const grid = document.getElementById("activationGrid");
+      grid.innerHTML = "";
+      activationQuestions.forEach((item, index) => {
+        const selected = state.activationAnswers[item.id];
+        const answered = selected !== undefined;
+        const isCorrect = selected === item.answer;
+        const card = document.createElement("div");
+        card.className = `card ${answered ? (isCorrect ? "correct" : "incorrect") : ""}`;
+        card.innerHTML = `
+          <div class="question-title"><span class="num">${index + 1}</span><p>${item.text}</p></div>
+          <div class="answer-grid" data-activation="${item.id}">
+            ${item.options.map(option => `<button class="answer ${selected === option ? "selected" : ""} ${answered && option === item.answer ? "correct" : ""} ${selected === option && !isCorrect ? "incorrect" : ""}" type="button" data-value="${option}">${option}</button>`).join("")}
+          </div>
+          <p class="micro-feedback ${answered ? "visible" : ""}">${isCorrect ? item.feedback : "Casi. Piensa si el cambio mueve el registro a la derecha o a la izquierda."}</p>
+        `;
+        grid.appendChild(card);
+      });
+      grid.onclick = event => {
+        const button = event.target.closest(".answer");
+        if (!button) return;
+        const wrap = button.closest("[data-activation]");
+        if (!wrap) return;
+        state.activationAnswers[wrap.dataset.activation] = button.dataset.value;
+        save();
+        renderActivation();
+      };
+    }
+
+    function numberLineHtml(item) {
+      const end = item.result;
+      const range = item.range;
+      const startPos = pos(item.start, range);
+      const endPos = pos(end, range);
+      const left = Math.min(startPos, endPos);
+      const width = Math.abs(endPos - startPos);
+      const direction = item.change >= 0 ? "right" : "left";
+      return `
+        <div class="numberline-wrap" aria-label="Recta numérica de ${item.system}">
+          <div class="numberline">
+            <div class="line"></div>
+            ${ticksFor(range).map(value => `
+              <div class="tick" style="left:${pos(value, range)}%"><span>${value === 0 ? "0" : formatSigned(value)}</span></div>
+            `).join("")}
+            <div class="arrow ${direction}" style="left:${left}%; width:${Math.max(width, 2)}%">
+              <span class="arrow-label">${formatSigned(item.change)}</span>
+            </div>
+            <div class="point" style="left:${startPos}%"><span>I</span><small>${formatSigned(item.start)}</small></div>
+            <div class="point end" style="left:${endPos}%"><span>F</span><small>?</small></div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderOperations() {
+      const grid = document.getElementById("operationGrid");
+      grid.innerHTML = "";
+      operations.forEach((item, index) => {
+        const answer = state.operationAnswers[item.id] || {};
+        const resultOk = Number(answer.result) === item.result;
+        const argumentOk = answer.argument === item.argument;
+        const answered = answer.result !== undefined && answer.argument;
+        const card = document.createElement("div");
+        card.className = `operation-card ${answered ? (resultOk && argumentOk ? "correct" : "incorrect") : ""}`;
+        card.innerHTML = `
+          <div class="operation-meta">
+            <div class="question-title"><span class="num">${index + 1}</span><p>${item.prompt}</p></div>
+            <div class="operation">${item.expression}</div>
+            <div class="field">
+              <label>Resultado</label>
+              <input type="number" data-result="${item.id}" value="${answer.result ?? ""}" placeholder="Escribe el número">
+            </div>
+            <div class="field">
+              <label>Argumento</label>
+              <select data-argument="${item.id}">
+                <option value="">Elige una explicación</option>
+                ${item.arguments.map(arg => `<option value="${arg}" ${answer.argument === arg ? "selected" : ""}>${arg}</option>`).join("")}
+              </select>
+            </div>
+            <p class="micro-feedback ${answered ? "visible" : ""}">${resultOk && argumentOk ? "Bien: cálculo y explicación coinciden con la recta." : resultOk ? "El resultado está bien; revisa el argumento." : "Revisa el punto inicial, la dirección y el punto final."}</p>
+          </div>
+          ${numberLineHtml(item)}
+        `;
+        grid.appendChild(card);
+      });
+      grid.oninput = event => {
+        const input = event.target.closest("[data-result]");
+        if (!input) return;
+        state.operationAnswers[input.dataset.result] = { ...(state.operationAnswers[input.dataset.result] || {}), result: input.value === "" ? undefined : Number(input.value) };
+        save();
+      };
+      grid.onchange = event => {
+        const select = event.target.closest("[data-argument]");
+        if (!select) return;
+        state.operationAnswers[select.dataset.argument] = { ...(state.operationAnswers[select.dataset.argument] || {}), argument: select.value };
+        save();
+        renderOperations();
+      };
+    }
+
+    function renderInterpretations() {
+      const grid = document.getElementById("interpretGrid");
+      grid.innerHTML = "";
+      operations.forEach((item, index) => {
+        const answer = state.interpretations[item.id] || {};
+        const answered = answer.status && answer.changeType && answer.direction;
+        const ok = answer.status === item.status && answer.changeType === item.changeType && answer.direction === (item.change >= 0 ? "derecha" : "izquierda");
+        const card = document.createElement("div");
+        card.className = `card ${answered ? (ok ? "correct" : "incorrect") : ""}`;
+        card.innerHTML = `
+          <div class="question-title"><span class="num">${index + 1}</span><p>${item.system}: resultado ${formatSigned(item.result)} ${item.unit}</p></div>
+          <div class="field">
+            <label>¿Cómo quedó respecto al cero?</label>
+            <select data-status="${item.id}">
+              <option value="">Elige una opción</option>
+              <option value="por debajo" ${answer.status === "por debajo" ? "selected" : ""}>Por debajo de cero</option>
+              <option value="equilibrio" ${answer.status === "equilibrio" ? "selected" : ""}>En equilibrio</option>
+              <option value="por encima" ${answer.status === "por encima" ? "selected" : ""}>Por encima de cero</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>¿El cambio fue mejora o deterioro?</label>
+            <select data-change="${item.id}">
+              <option value="">Elige una opción</option>
+              <option value="mejora" ${answer.changeType === "mejora" ? "selected" : ""}>Mejora</option>
+              <option value="deterioro" ${answer.changeType === "deterioro" ? "selected" : ""}>Deterioro</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>¿Qué dato indica la dirección?</label>
+            <select data-direction="${item.id}">
+              <option value="">Elige una opción</option>
+              <option value="derecha" ${answer.direction === "derecha" ? "selected" : ""}>El segundo sumando es positivo: derecha</option>
+              <option value="izquierda" ${answer.direction === "izquierda" ? "selected" : ""}>El segundo sumando es negativo: izquierda</option>
+            </select>
+          </div>
+          <p class="micro-feedback ${answered ? "visible" : ""}">${ok ? "Correcto: interpretaste resultado, cambio y dirección." : "Revisa el signo del resultado y el signo del cambio."}</p>
+        `;
+        grid.appendChild(card);
+      });
+      grid.onchange = event => {
+        const status = event.target.closest("[data-status]");
+        const change = event.target.closest("[data-change]");
+        const direction = event.target.closest("[data-direction]");
+        const id = status?.dataset.status || change?.dataset.change || direction?.dataset.direction;
+        if (!id) return;
+        state.interpretations[id] = {
+          ...(state.interpretations[id] || {}),
+          ...(status ? { status: status.value } : {}),
+          ...(change ? { changeType: change.value } : {}),
+          ...(direction ? { direction: direction.value } : {})
+        };
+        save();
+        renderInterpretations();
+      };
+    }
+
+    function validateCurrent() {
+      if (state.screen === 0) return true;
+      if (state.screen === 1) {
+        const answered = activationQuestions.filter(item => state.activationAnswers[item.id] !== undefined).length;
+        const correct = correctCount(activationQuestions, state.activationAnswers);
+        if (answered < activationQuestions.length) {
+          showFeedback("feedback1", "warn", "Responde todas las preguntas antes de continuar.");
+          return false;
+        }
+        if (correct < activationQuestions.length) {
+          showFeedback("feedback1", "warn", `Tienes ${correct} de ${activationQuestions.length} respuestas correctas. Revisa las tarjetas naranjas.`);
+          return false;
+        }
+        showFeedback("feedback1", "ok", "Bien: ya reconoces la suma como cambio.");
+        return true;
+      }
+      if (state.screen === 2) {
+        const answered = operations.filter(item => {
+          const answer = state.operationAnswers[item.id] || {};
+          return answer.result !== undefined && answer.argument;
+        }).length;
+        const correct = operations.filter(item => {
+          const answer = state.operationAnswers[item.id] || {};
+          return Number(answer.result) === item.result && answer.argument === item.argument;
+        }).length;
+        if (answered < operations.length) {
+          showFeedback("feedback2", "warn", "Completa resultado y argumento en cada operación.");
+          return false;
+        }
+        if (correct < operations.length) {
+          showFeedback("feedback2", "warn", `Tienes ${correct} de ${operations.length} operaciones completamente correctas. Revisa cálculo y argumento.`);
+          return false;
+        }
+        showFeedback("feedback2", "ok", "Excelente: calculaste las sumas usando desplazamientos.");
+        return true;
+      }
+      if (state.screen === 3) {
+        const answered = operations.filter(item => {
+          const answer = state.interpretations[item.id] || {};
+          return answer.status && answer.changeType && answer.direction;
+        }).length;
+        const correct = operations.filter(item => {
+          const answer = state.interpretations[item.id] || {};
+          return answer.status === item.status && answer.changeType === item.changeType && answer.direction === (item.change >= 0 ? "derecha" : "izquierda");
+        }).length;
+        if (answered < operations.length) {
+          showFeedback("feedback3", "warn", "Completa la lectura de todos los resultados.");
+          return false;
+        }
+        if (correct < operations.length) {
+          showFeedback("feedback3", "warn", `Tienes ${correct} de ${operations.length} interpretaciones correctas. Revisa signo del resultado y dirección del cambio.`);
+          return false;
+        }
+        showFeedback("feedback3", "ok", "Muy bien: conectaste resultado, dirección y sentido del cambio.");
+        return true;
+      }
+      return true;
+    }
+
+    function updateProgress() {
+      const percent = Math.round((state.screen / 4) * 100);
+      progressBar.style.width = `${percent}%`;
+      progressText.textContent = `${percent}%`;
+      updateLives();notifyProgress();
+    }
+
+    function renderSummary() {
+      const activationCorrect = correctCount(activationQuestions, state.activationAnswers);
+      const operationCorrect = operations.filter(item => {
+        const answer = state.operationAnswers[item.id] || {};
+        return Number(answer.result) === item.result && answer.argument === item.argument;
+      }).length;
+      const interpretationCorrect = operations.filter(item => {
+        const answer = state.interpretations[item.id] || {};
+        return answer.status === item.status && answer.changeType === item.changeType && answer.direction === (item.change >= 0 ? "derecha" : "izquierda");
+      }).length;
+      document.getElementById("finalMessage").textContent = "Actualizaste los registros diarios de la granja usando suma de enteros.";
+      document.getElementById("teacherEvidence").innerHTML = `
+        Activación: <strong>${activationCorrect}/${activationQuestions.length}</strong>.<br>
+        Sumas con argumento: <strong>${operationCorrect}/${operations.length}</strong>.<br>
+        Lectura del resultado: <strong>${interpretationCorrect}/${operations.length}</strong>.
+      `;
+    }
+
+    function goTo(index) {
+      state.screen = Math.max(0, Math.min(4, index));
+      stage.classList.toggle("wide-mode", state.screen === 2 || state.screen === 3);
+      screens.forEach(screen => screen.classList.toggle("active", Number(screen.dataset.screen) === state.screen));
+      pills.forEach((pill, idx) => {
+        pill.classList.toggle("active", idx === state.screen);
+        pill.classList.toggle("done", idx < state.screen);
+      });
+      backBtn.disabled = state.screen === 0;
+      nextBtn.textContent = state.screen === 4 ? "Terminado" : "Continuar";
+      if (state.screen === 4) renderSummary();
+      save();
+    }
+
+    backBtn.addEventListener("click", () => goTo(state.screen - 1));
+    nextBtn.addEventListener("click", () => { if (state.screen < 4 && validateCurrent()) goTo(state.screen + 1); });
+    resetBtn.addEventListener("click", () => {
+      localStorage.removeItem(storageKey);
+      state = { screen: 0, activationAnswers: {}, operationAnswers: {}, interpretations: {} };
+      renderActivation();
+      renderOperations();
+      renderInterpretations();
+      document.querySelectorAll(".feedback").forEach(box => { box.className = "feedback"; box.textContent = ""; });
+      goTo(0);
+    });
+
+    load();
+    renderActivation();
+    renderOperations();
+    renderInterpretations();
+    goTo(state.screen || 0);
+  </script>
+</body>
+</html>

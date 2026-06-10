@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Granja autosostenible | Ruta de números enteros</title>
+  <style>
+    :root {
+      --leaf: #168a4a;
+      --leaf-soft: #e7f5dd;
+      --sun: #f5b942;
+      --ink: #243a32;
+      --muted: #60756d;
+      --panel: #fffdf4;
+      --line: #d8c999;
+      --radius: 18px;
+      --shadow: 0 18px 45px rgba(40, 79, 56, .18);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 8%, rgba(245, 185, 66, .32), transparent 28%),
+        linear-gradient(135deg, #d9f6f0 0%, #fff2ce 52%, #e7f5dd 100%);
+    }
+
+    .cover {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(320px, .88fr) minmax(420px, 1.12fr);
+      gap: clamp(22px, 4vw, 54px);
+      align-items: center;
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      padding: clamp(18px, 4vw, 46px);
+    }
+
+    .mission {
+      display: grid;
+      gap: 18px;
+    }
+
+    .eyebrow {
+      width: max-content;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: var(--leaf-soft);
+      border: 1px solid #b7dfaa;
+      color: var(--leaf);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      font-size: .78rem;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 4.4rem);
+      line-height: .95;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      color: var(--muted);
+      font-size: clamp(1rem, 1.6vw, 1.2rem);
+      line-height: 1.55;
+      font-weight: 700;
+      max-width: 62ch;
+    }
+
+    .role-card,
+    .mission-card {
+      padding: 18px;
+      border-radius: var(--radius);
+      background: rgba(255, 253, 242, .92);
+      border: 1px solid rgba(139, 111, 35, .24);
+      box-shadow: 0 12px 28px rgba(60, 60, 30, .10);
+      display: grid;
+      gap: 12px;
+    }
+
+    .role-card h2,
+    .mission-card h2 {
+      font-size: 1.1rem;
+    }
+
+    .role-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .role-list li {
+      list-style: none;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: #fffaf0;
+      border: 1px solid var(--line);
+      color: #4c604f;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .start-panel {
+      display: grid;
+      gap: 12px;
+      padding: 18px;
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, .74);
+      border: 1px solid var(--line);
+    }
+
+    label {
+      font-weight: 900;
+    }
+
+    input {
+      width: 100%;
+      min-height: 48px;
+      border-radius: 14px;
+      border: 1px solid #cfbd86;
+      background: #fffefb;
+      color: var(--ink);
+      padding: 10px 12px;
+      font: inherit;
+      font-weight: 800;
+    }
+
+    .btn {
+      min-height: 48px;
+      border: 0;
+      border-radius: 14px;
+      padding: 10px 16px;
+      color: white;
+      background: var(--leaf);
+      font: inherit;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .btn.secondary {
+      color: #3d4d43;
+      background: #fffaf0;
+      border: 1px solid #cfc2ad;
+    }
+
+    .farm-panel {
+      position: relative;
+      min-height: min(650px, 80vh);
+      overflow: hidden;
+      border-radius: var(--radius);
+      border: 1px solid rgba(22, 138, 74, .32);
+      background: #83d7df;
+      box-shadow: var(--shadow);
+    }
+
+    .farm-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: url("assets/granjaindex.png") center / cover no-repeat;
+      filter: blur(12px) saturate(1.08);
+      transform: scale(1.06);
+      opacity: .72;
+    }
+
+    .farm-panel img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+    }
+
+    .module-view {
+      display: none;
+      min-height: 100vh;
+      grid-template-rows: auto 1fr;
+      background: #f7f3df;
+    }
+
+    .module-view.active {
+      display: grid;
+    }
+
+    .module-nav {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 14px;
+      background: rgba(255, 253, 242, .96);
+      border-bottom: 1px solid rgba(139, 111, 35, .28);
+      box-shadow: 0 8px 24px rgba(40, 79, 56, .08);
+      backdrop-filter: blur(10px);
+    }
+
+    .student-chip {
+      display: grid;
+      gap: 2px;
+      min-width: 150px;
+    }
+
+    .student-chip span {
+      color: var(--muted);
+      font-size: .76rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .student-chip strong {
+      line-height: 1.15;
+    }
+
+    .module-buttons {
+      display: flex;
+      gap: 7px;
+      overflow-x: auto;
+      padding: 2px;
+      scrollbar-width: thin;
+    }
+
+    .route-status {
+      display: grid;
+      gap: 6px;
+      min-width: 170px;
+      padding: 8px 10px;
+      border-radius: 14px;
+      background: #fffaf0;
+      border: 1px solid var(--line);
+    }
+
+    .xp-row,
+    .life-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      color: var(--muted);
+      font-weight: 900;
+      font-size: .78rem;
+    }
+
+    .xp-track {
+      flex: 1;
+      height: 10px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: #eef4df;
+      border: 1px solid rgba(0, 0, 0, .08);
+    }
+
+    .xp-track span {
+      display: block;
+      width: var(--xp, 0%);
+      height: 100%;
+      background: linear-gradient(90deg, var(--leaf), var(--sun));
+    }
+
+    .lives {
+      color: var(--sun);
+      letter-spacing: .08em;
+      text-shadow: 0 1px 0 #8b6f23;
+    }
+
+    .module-button {
+      flex: 0 0 auto;
+      min-width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      border: 1px solid #cfbd86;
+      background: #fffaf0;
+      color: var(--ink);
+      font: inherit;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .module-button.active {
+      color: white;
+      background: var(--leaf);
+      border-color: var(--leaf);
+    }
+
+    .module-button.done:not(.active) {
+      color: var(--leaf);
+      background: var(--leaf-soft);
+      border-color: #aad99b;
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .nav-actions .btn {
+      min-height: 42px;
+      padding: 8px 12px;
+      white-space: nowrap;
+    }
+
+    .frame-shell {
+      min-height: 0;
+    }
+
+    .completion-page {
+      min-height: calc(100vh - 92px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: clamp(18px, 4vw, 46px);
+      background:
+        linear-gradient(180deg, rgba(255, 253, 242, .86), rgba(255, 253, 242, .96)),
+        url("assets/granjaindex.png") center / cover no-repeat;
+    }
+
+    .completion-page.active {
+      display: flex;
+    }
+
+    .completion-card {
+      width: min(820px, 100%);
+      display: grid;
+      gap: 18px;
+      padding: clamp(20px, 4vw, 38px);
+      border-radius: var(--radius);
+      background: rgba(255, 253, 242, .94);
+      border: 1px solid rgba(139, 111, 35, .28);
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .completion-badge {
+      width: 76px;
+      height: 76px;
+      margin: 0 auto;
+      display: grid;
+      place-items: center;
+      border-radius: 24px;
+      color: var(--leaf);
+      background: var(--leaf-soft);
+      border: 1px solid #aad99b;
+      font-size: 2.1rem;
+      font-weight: 900;
+    }
+
+    .completion-card h2 {
+      font-size: clamp(2rem, 4vw, 3.5rem);
+      line-height: 1;
+    }
+
+    .completion-card p {
+      color: var(--muted);
+      font-size: clamp(1rem, 1.6vw, 1.18rem);
+      line-height: 1.55;
+      font-weight: 800;
+    }
+
+    .completion-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .completion-stats span {
+      padding: 12px;
+      border-radius: 14px;
+      background: #fffaf0;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-weight: 900;
+    }
+
+    iframe {
+      display: block;
+      width: 100%;
+      height: calc(100vh - 92px);
+      border: 0;
+      background: white;
+    }
+
+    @media (max-width: 900px) {
+      .cover {
+        grid-template-columns: 1fr;
+      }
+
+      .farm-panel {
+        min-height: 420px;
+      }
+
+      .module-nav {
+        grid-template-columns: 1fr;
+      }
+
+      .route-status {
+        min-width: 0;
+      }
+
+      .student-chip {
+        min-width: 0;
+      }
+
+      .nav-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .nav-actions .btn {
+        width: 100%;
+      }
+
+      iframe {
+        height: calc(100vh - 210px);
+      }
+
+      .completion-page {
+        min-height: calc(100vh - 210px);
+      }
+
+      .completion-stats {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .cover {
+        padding: 14px;
+      }
+
+      .farm-panel {
+        min-height: 330px;
+      }
+
+      .role-card,
+      .mission-card,
+      .start-panel {
+        padding: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <section class="cover" id="cover">
+    <div class="mission">
+      <span class="eyebrow">Recurso interactivo</span>
+      <h1>Granja autosostenible</h1>
+      <p class="lead">Vas a convertirte en responsable de una granja que necesita estabilizar sus sistemas de agua, energía, temperatura, presupuesto, señal y cultivos usando números enteros.</p>
+
+      <div class="role-card">
+        <h2>Tu rol</h2>
+        <ul class="role-list">
+          <li>Serás el encargado de leer el panel de control de la granja.</li>
+          <li>Tomarás decisiones usando positivos, negativos y el cero como referencia.</li>
+          <li>Usarás rectas numéricas, comparaciones, sumas, restas y argumentos para justificar tus decisiones.</li>
+        </ul>
+      </div>
+
+      <div class="mission-card">
+        <h2>Tu misión</h2>
+        <p class="lead">Completar ocho módulos breves para que la granja funcione mejor. Puedes avanzar a tu ritmo y volver a cualquier módulo desde la barra superior.</p>
+      </div>
+
+      <div class="start-panel">
+        <label for="studentName">Nombre del estudiante</label>
+        <input id="studentName" type="text" autocomplete="name" placeholder="Escribe tu nombre">
+        <button class="btn" id="startBtn" type="button">Iniciar misión</button>
+      </div>
+    </div>
+
+    <div class="farm-panel" aria-label="Imagen de la granja autosostenible">
+      <img src="assets/granjaindex.png" alt="Granja autosostenible con paneles solares, depósito de agua y cultivos">
+    </div>
+  </section>
+
+  <section class="module-view" id="moduleView" aria-label="Módulos del recurso">
+    <header class="module-nav">
+      <div class="student-chip">
+        <span>Responsable de la granja</span>
+        <strong id="studentLabel">Estudiante</strong>
+      </div>
+      <nav class="module-buttons" id="moduleButtons" aria-label="Seleccionar módulo"></nav>
+      <div class="route-status" aria-label="Puntos de experiencia y vidas de la ruta">
+        <div class="xp-row"><span>XP</span><div class="xp-track" id="routeXpTrack"><span></span></div><strong id="routeXpText">0</strong></div>
+        <div class="life-row"><span>Vidas</span><span class="lives" id="routeLives" aria-label="5 vidas">★★★★★</span></div>
+      </div>
+      <div class="nav-actions">
+        <button class="btn secondary" id="homeBtn" type="button">Inicio</button>
+        <button class="btn secondary" id="resetAllBtn" type="button">Reiniciar todo</button>
+        <button class="btn" id="nextBtn" type="button">Siguiente</button>
+      </div>
+    </header>
+    <main class="frame-shell">
+      <iframe id="moduleFrame" title="Módulo seleccionado" src="modulo_1_granja_autosostenible.html"></iframe>
+      <section class="completion-page" id="completionPage" aria-label="Cierre de la misión">
+        <div class="completion-card">
+          <div class="completion-badge" aria-hidden="true">✓</div>
+          <h2>¡Misión cumplida!</h2>
+          <p id="completionMessage">Completaste la ruta de la granja autosostenible. Usaste números enteros para interpretar cambios, comparar estados, calcular operaciones y justificar decisiones.</p>
+          <div class="completion-stats">
+            <span>8 módulos completados</span>
+            <span id="completionXp">800 XP</span>
+            <span>Informe final listo</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </section>
+
+  <script>
+    const storageKey = "granja_recurso_global_v1";
+    const oldStorageKeys = ["granja_recurso_portada_v2"];
+    const moduleStorageKeys = [
+      "granja_modulo_1_estado_v2",
+      "granja_modulo_2_estado_v2",
+      "granja_modulo_3_estado_v1",
+      "granja_modulo_4_estado_v1",
+      "granja_modulo_5_estado_v1",
+      "granja_modulo_6_estado_v1",
+      "granja_modulo_7_estado_v1",
+      "granja_modulo_8_estado_v1"
+    ];
+    const modules = [
+      "modulo_1_granja_autosostenible.html",
+      "modulo_2_granja_autosostenible.html",
+      "modulo_3_granja_autosostenible.html",
+      "modulo_4_granja_autosostenible.html",
+      "modulo_5_granja_autosostenible.html",
+      "modulo_6_granja_autosostenible.html",
+      "modulo_7_granja_autosostenible.html",
+      "modulo_8_granja_autosostenible.html"
+    ];
+
+    let state = {
+      studentName: "",
+      started: false,
+      current: 0,
+      lives: 5,
+      moduleProgress: Array(8).fill(0),
+      showCompletion: null
+    };
+
+    const cover = document.getElementById("cover");
+    const moduleView = document.getElementById("moduleView");
+    const studentName = document.getElementById("studentName");
+    const studentLabel = document.getElementById("studentLabel");
+    const startBtn = document.getElementById("startBtn");
+    const homeBtn = document.getElementById("homeBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const moduleButtons = document.getElementById("moduleButtons");
+    const moduleFrame = document.getElementById("moduleFrame");
+    const completionPage = document.getElementById("completionPage");
+    const completionMessage = document.getElementById("completionMessage");
+    const completionXp = document.getElementById("completionXp");
+    const routeXpTrack = document.getElementById("routeXpTrack");
+    const routeXpText = document.getElementById("routeXpText");
+    const routeLives = document.getElementById("routeLives");
+    const resetAllBtn = document.getElementById("resetAllBtn");
+
+    function normalizeProgress(progress) {
+      return Array.from({ length: modules.length }, (_, index) =>
+        Math.max(0, Math.min(4, Number(progress?.[index] || 0)))
+      );
+    }
+
+    function normalizeState(raw) {
+      return {
+        ...state,
+        ...raw,
+        current: Math.max(0, Math.min(modules.length - 1, Number(raw?.current || 0))),
+        lives: Math.max(0, Math.min(5, Number(raw?.lives ?? 5))),
+        moduleProgress: normalizeProgress(raw?.moduleProgress),
+        showCompletion: Object.prototype.hasOwnProperty.call(raw || {}, "showCompletion") ? raw.showCompletion : null
+      };
+    }
+
+    function load() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey));
+        if (saved && typeof saved === "object") state = normalizeState(saved);
+      } catch {}
+    }
+
+    function save() {
+      localStorage.setItem(storageKey, JSON.stringify(state));
+      render();
+    }
+
+    function renderButtons() {
+      moduleButtons.innerHTML = "";
+      modules.forEach((_, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `module-button ${state.current === index ? "active" : ""} ${state.moduleProgress[index] >= 4 ? "done" : ""}`;
+        button.textContent = index + 1;
+        button.setAttribute("aria-label", `Abrir módulo ${index + 1}`);
+        button.addEventListener("click", () => {
+          state.current = index;
+          state.started = true;
+          state.showCompletion = false;
+          save();
+        });
+        moduleButtons.appendChild(button);
+      });
+    }
+
+    function render() {
+      studentName.value = state.studentName || "";
+      studentLabel.textContent = state.studentName || "Estudiante";
+      cover.style.display = state.started ? "none" : "grid";
+      moduleView.classList.toggle("active", state.started);
+      renderButtons();
+      const file = modules[state.current];
+      const completedSteps = state.moduleProgress.reduce((total, value) => total + Math.max(0, Math.min(4, Number(value || 0))), 0);
+      const totalSteps = modules.length * 4;
+      const allComplete = state.moduleProgress.every(value => Number(value || 0) >= 4);
+      if (allComplete && state.started && state.showCompletion !== false) state.showCompletion = true;
+      moduleFrame.style.display = state.showCompletion ? "none" : "block";
+      completionPage.classList.toggle("active", !!state.showCompletion);
+      if (!state.showCompletion && !moduleFrame.src.endsWith(file)) moduleFrame.src = file;
+      const xp = completedSteps * 25;
+      routeXpTrack.style.setProperty("--xp", `${(completedSteps / totalSteps) * 100}%`);
+      routeXpText.textContent = xp;
+      completionXp.textContent = `${xp} XP`;
+      completionMessage.textContent = `${state.studentName || "Responsable de la granja"}, completaste la ruta de la granja autosostenible. Usaste números enteros para interpretar cambios, comparar estados, calcular operaciones y justificar decisiones.`;
+      routeLives.textContent = "★".repeat(state.lives) + "☆".repeat(5 - state.lives);
+      routeLives.setAttribute("aria-label", state.lives === 1 ? "1 vida" : `${state.lives} vidas`);
+      nextBtn.textContent = state.showCompletion ? "Revisar módulo 1" : state.current === modules.length - 1 ? "Módulo 1" : "Siguiente";
+    }
+
+    studentName.addEventListener("input", event => {
+      state.studentName = event.target.value.trim();
+      localStorage.setItem(storageKey, JSON.stringify(state));
+    });
+
+    startBtn.addEventListener("click", () => {
+      state.studentName = studentName.value.trim();
+      state.started = true;
+      state.current = 0;
+      state.showCompletion = false;
+      save();
+    });
+
+    homeBtn.addEventListener("click", () => {
+      state.started = false;
+      save();
+    });
+
+    nextBtn.addEventListener("click", () => {
+      if (state.showCompletion) {
+        state.current = 0;
+        state.showCompletion = false;
+        state.started = true;
+        save();
+        return;
+      }
+      state.current = (state.current + 1) % modules.length;
+      state.started = true;
+      save();
+    });
+
+    resetAllBtn.addEventListener("click", () => {
+      [...oldStorageKeys, storageKey, ...moduleStorageKeys].forEach(key => localStorage.removeItem(key));
+      state = {
+        studentName: "",
+        started: false,
+        current: 0,
+        lives: 5,
+        moduleProgress: Array(8).fill(0),
+        showCompletion: false
+      };
+      moduleFrame.src = modules[0];
+      try {
+        moduleFrame.contentWindow?.postMessage({ type: "granja:reset-module" }, "*");
+      } catch {}
+      save();
+    });
+
+    window.addEventListener("message", event => {
+      const data = event.data || {};
+      if (data.type === "granja:global-state" && data.state) {
+        state = normalizeState({ ...state, lives: data.state.lives, moduleProgress: data.state.moduleProgress });
+        localStorage.setItem(storageKey, JSON.stringify(state));
+        render();
+      }
+      if (data.type === "granja:module-progress") {
+        const index = Number(data.module) - 1;
+        if (index >= 0 && index < modules.length) {
+          state.moduleProgress[index] = Math.max(state.moduleProgress[index] || 0, Math.max(0, Math.min(4, Number(data.progress || 0))));
+          if (state.moduleProgress.every(value => Number(value || 0) >= 4)) state.showCompletion = true;
+          localStorage.setItem(storageKey, JSON.stringify(state));
+          render();
+        }
+      }
+    });
+
+    load();
+    render();
+  </script>
+</body>
+</html>
